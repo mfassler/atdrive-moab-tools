@@ -149,16 +149,7 @@ while True:
                 print('failed to parse compass packet:', ee)
 
         elif oneInput == odo_sock:
-            pkt, addr = odo_sock.recvfrom(1500)
-            #print("odo: %d bytes" % (len(pkt)))
-            try:
-                shaft.parse_packet(pkt)
-            except Exception as ee:
-                print('failed to parse odo packet:', ee)
-            else:
-                pass
-                #movement = np.dot(rot_matrix, [0.0, SHAFT_ENCODER_DISTANCE])
-                #est_lat, est_lon = get_new_gps_coords(est_lat, est_lon, movement[1], movement[0])
+            shaft.get_all_packets(odo_sock)
 
         elif oneInput == mavlink._sock:
             pkt, addr = mavlink._sock.recvfrom(512)
@@ -172,11 +163,11 @@ while True:
                     mavlink.do_message(oneMsg)
 
 
-    shaft.update_speed_estimate()
-    #print('speed:', shaft.speed)
-    mavlink.send_vfr_hud(shaft.speed)
+    #shaft.update_speed_estimate()
+    print('speed: %.02f' % (shaft.current_speed))
+    mavlink.send_vfr_hud(shaft.current_speed)
     if est_lat is not None and est_lon is not None and est_heading is not None:
-        nav_udp_packet = struct.pack('!dddd', est_lat, est_lon, est_heading, shaft.speed)
+        nav_udp_packet = struct.pack('!dddd', est_lat, est_lon, est_heading, shaft.current_speed)
         nav_sock.sendto(nav_udp_packet, ('127.0.0.1',NAV_PORT_OUT))
 
 
