@@ -35,12 +35,24 @@ def parseMe(pkt):
     if len(pkt) != 4:
         print('wrong packet length')
     else:
-        _nothing_, mtype, ms_since_last_event = struct.unpack('BBH', pkt)
+        mtype = pkt[3]
+        _us_since_last_event, = struct.unpack('I', pkt)
+        us_since_last_event = 0x00ffffff & _us_since_last_event
+
+        if us_since_last_event < 1:
+            us_since_last_event = 1
+
         if mtype == 1 or mtype == 2:
-            current_speed = 1000.0 / ms_since_last_event
+            if us_since_last_event >= 0xfffffe:
+                current_speed = 0.0
+            else:
+                current_speed = 1000000.0 / us_since_last_event
             calc_average_speed()
         elif mtype == 0:
-            max_speed = 1000.0 / ms_since_last_event
+            if us_since_last_event >= 0xfffffe:
+                max_speed = 0.0
+            else:
+                max_speed = 1000000.0 / us_since_last_event
             if current_speed > max_speed:
                 current_speed = max_speed
             if avg_speed > max_speed:
