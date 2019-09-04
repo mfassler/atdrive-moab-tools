@@ -17,14 +17,14 @@ from ShaftEncoder import ShaftEncoder
 from utils import get_new_gps_coords
 from MavlinkHandler import MavlinkHandler
 
-#mavlink = MavlinkHandler("192.168.53.13")
-mavlink = MavlinkHandler("127.0.0.1")
+import ROBOT_CONFIG as config
+
+mavlink = MavlinkHandler(config.MAVLINK_IP_ADDRESS)
 
 #ublox = UbloxParser(mavlink)
 nmea = NmeaParser(mavlink)
 
-SHAFT_ENCODER_DISTANCE = 0.09 # encoder distance is 18cm
-shaft = ShaftEncoder(SHAFT_ENCODER_DISTANCE)
+shaft = ShaftEncoder(config.SHAFT_ENCODER_DISTANCE)
 
 
 ## We need to listen for certain UDP packets coming from the Moab:
@@ -56,11 +56,7 @@ zz_avg = 0.0
 rot_matrix = np.array([[1, 0], [0, 1]])
 est_heading = 0.0
 
-# Gifu
-#MAGNETIC_DECLINATION = -7.867
-
-# Tokyo
-MAGNETIC_DECLINATION = -7.57
+compass_rot_offset = np.radians(config.compass_rotation_offset_degrees)
 
 
 def parse_compass_packet(pkt):
@@ -72,25 +68,17 @@ def parse_compass_packet(pkt):
     global est_heading
 
     x, y, z = struct.unpack("<hhh", pkt)
-    # This has to be calibrated for each compass / robot:
-    x_range = 235 / 2.0
-    y_range = 308 / 2.0
-    z_range = 326 / 2.0
 
-    x_middle = -52.5
-    y_middle = 48.0
-    z_middle = -77.0
-
-    xx = (x - x_middle) / x_range
-    yy = (y - y_middle) / y_range
-    zz = (z - z_middle) / z_range
+    xx = (x - config.compass_x_center) / config.compass_x_range
+    yy = (y - config.compass_x_center) / config.compass_y_range
+    zz = (z - config.compass_x_center) / config.compass_z_range
 
     xx_avg = 0.5 * xx_avg + 0.5 * xx
     yy_avg = 0.5 * yy_avg + 0.5 * yy
     zz_avg = 0.5 * zz_avg + 0.5 * zz
 
     # rotation matrix:
-    avg_rot = np.arctan2(xx_avg, yy_avg) - np.radians(MAGNETIC_DECLINATION)
+    avg_rot = np.arctan2(xx_avg, yy_avg) + compass_rot_offset
     est_heading = np.degrees(avg_rot)
     cosYaw = np.cos(avg_rot)
     sinYaw = np.sin(avg_rot)
@@ -104,8 +92,9 @@ def parse_compass_packet(pkt):
     #print('%.0f ' % (hdg), norm)
 
 
-est_lat = None  #35.85165670523885
-est_lon = None #139.51723961524712
+est_lat = None
+est_lon = None
+
 
 _last_odo_ts = None
 while True:
