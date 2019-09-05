@@ -1,4 +1,5 @@
 
+import sys
 import math
 import time
 import socket
@@ -151,6 +152,7 @@ class MavlinkHandler:
                     f.write(b"%f, %f\n" % (self._mission_items[i]['x'], self._mission_items[i]['y']))
                 print("\n")
                 f.close()
+                sys.stdout.flush()
 
 
 
