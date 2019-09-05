@@ -15,4 +15,8 @@ compass_z_center = -77.0
 
 compass_rotation_offset_degrees = 7.57
 
+lidar_ref_angle = 45.0
+lidar_ref_lat = 35.6535
+lidar_ref_lon = 139.837
+
 

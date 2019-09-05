@@ -44,6 +44,9 @@ NMEA_RX_PORT = 27113
 gps_sock_nmea = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 gps_sock_nmea.bind(("0.0.0.0", NMEA_RX_PORT))
 
+LIDAR_NAV_RX_PORT = 11546
+lidar_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+lidar_sock.bind(("0.0.0.0", LIDAR_NAV_RX_PORT))
 
 ## We will send lat, lon, heading, and speed to the Autopilot program
 NAV_PORT_OUT = 27201
@@ -95,10 +98,62 @@ def parse_compass_packet(pkt):
 est_lat = None
 est_lon = None
 
+ref_angle = np.radians(config.lidar_ref_angle)
+rot_matrix = np.array([[ np.cos(ref_angle), np.sin(ref_angle)],
+                       [-np.sin(ref_angle), np.cos(ref_angle)]])
+
+def parse_lidar_nav_packet(udpPacket):
+    global config
+    global rot_matrix
+    if len(udpPacket) != 72:
+        print('wrong packet length from lidar_nav')
+    else:
+        xfrm = np.frombuffer(pkt).reshape((3,3))
+        heading = np.arctan2(xfrm[1,0], xfrm[1,1])
+        #amap = np.copy(avoidance_areas)
+
+        startPos = np.dot(xfrm[:2, :2].T, xfrm[:2, 2])
+        x_real = startPos[1]
+        y_real = -startPos[0]
+
+        newPos = np.dot(rot_matrix, [x_real, y_real])
+
+        newLat, newLon = get_new_gps_coords(
+                config.lidar_ref_lat, config.lidar_ref_lon, newPos[1], newPos[0])
+
+        return newLat, newLon, heading+ref_angle
+
+
+
+def get_last_packet(sock, pkt_len=1500):
+    '''Empty out the UDP recv buffer and return only the final packet
+    (in case the GUI is slower than the data flow)
+    '''
+    sock.setblocking(0)
+    data = None
+    addr = None
+    cont=True
+    while cont:
+        try:
+            tmpData, addr = sock.recvfrom(pkt_len)
+        except Exception as ee:
+            #print(ee)
+            cont=False
+        else:
+            if tmpData:
+                if data is not None:
+                    #print('throwing away a packet (GUI is too slow)')
+                    pass
+                data = tmpData
+            else:
+                cont=False
+    sock.setblocking(1)
+    return data, addr
+
 
 _last_odo_ts = None
 while True:
-    inputs, outputs, errors = select.select([gps_sock_nmea, mag_sock, odo_sock, mavlink._sock], [], [], 0.2)
+    inputs, outputs, errors = select.select([gps_sock_nmea, mag_sock, odo_sock, lidar_sock, mavlink._sock], [], [], 0.2)
     for oneInput in inputs:
         if False:
             # TODO:  what is the max packet size of Ublox?
@@ -150,6 +205,23 @@ while True:
             else:
                 for oneMsg in msgs:
                     mavlink.do_message(oneMsg)
+
+        elif oneInput == lidar_sock:
+            pkt, addr = get_last_packet(lidar_sock, 512)
+            try:
+                lat, lon, hdg = parse_lidar_nav_packet(pkt)
+            except Exception as ee:
+                print("parse_lidar_nav_packet() failed:", ee)
+            else:
+                est_heading = np.degrees(hdg)
+                if est_lat is None:
+                    est_lat = lat
+                if est_lon is None:
+                    est_lon = lon
+                est_lat = 0.9*est_lat + 0.1*lat
+                est_lon = 0.9*est_lon + 0.1*lon
+                mavlink.send_attitude(0, 0, est_heading)
+                mavlink.send_gps(est_lat, est_lon, 4000)
 
 
     #shaft.update_speed_estimate()
