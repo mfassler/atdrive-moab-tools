@@ -20,16 +20,38 @@ sock.bind(("0.0.0.0", BNO055_RX_PORT))
 
 t0 = time.time()
 
+
+'''
+this is the packet structure in C:
+
+    struct multi_data {
+        int16_t compass_XYZ[3];  // external compass
+        int16_t _padding1;  // the compiler seems to like 64-bit boundaries
+        char bnoData[20];  // internal IMU
+        int32_t _padding2;  // the compiler seems to like 64-bit boundaries
+
+        // TODO:  do we really need float64 for these numbers?
+        double shaft_pps;
+        double temperature;
+        double pressure;
+    } mData;
+
+'''
+
+
 while True:
-    pkt, addr = sock.recvfrom(64)
-    if len(pkt) != 20:
-        print("udp packet is wrong length")
+    pkt, addr = sock.recvfrom(128)
+    if len(pkt) != 56:
+        print("udp packet is wrong length:", len(pkt))
     else:
-        qw, qx, qy, qz, lax, lay, laz, gx, gy, gz = struct.unpack("<hhhhhhhhhh", pkt)
-        print(lax, lay, laz, gx, gy, gz)
+        magX, magY, magZ, _nothing1, qw, qx, qy, qz, lax, lay, laz, gx, gy, gz, _nothing2, shaft_pps, temperature, pressure = struct.unpack("<hhhhhhhhhhhhhhlddd", pkt)
+        print(magX, magY, magZ, lax, lay, laz, gx, gy, gz, shaft_pps, temperature, pressure)
 
         rot = transforms3d.quaternions.quat2mat([qw, qx, qy, qz])
 
         hdg = -np.arctan2(rot[1, 0], rot[0,0])
         #print(rot)
-        print(np.degrees(hdg))
+        #print(np.degrees(hdg))
+
+        pktOut = rot.tobytes()
+        sock.sendto(pktOut, ('127.0.0.1', 12311))
