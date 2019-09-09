@@ -28,12 +28,14 @@ this is the packet structure in C:
         int16_t compass_XYZ[3];  // external compass
         int16_t _padding1;  // the compiler seems to like 64-bit boundaries
         char bnoData[20];  // internal IMU
-        int32_t _padding2;  // the compiler seems to like 64-bit boundaries
+
+        float temperature;
+        float pressure;
 
         // TODO:  do we really need float64 for these numbers?
         double shaft_pps;
-        double temperature;
-        double pressure;
+
+        int32_t _padding2;  // the compiler seems to like 64-bit boundaries
     } mData;
 
 '''
@@ -41,10 +43,10 @@ this is the packet structure in C:
 
 while True:
     pkt, addr = sock.recvfrom(128)
-    if len(pkt) != 56:
+    if len(pkt) != 48:
         print("udp packet is wrong length:", len(pkt))
     else:
-        magX, magY, magZ, _nothing1, qw, qx, qy, qz, lax, lay, laz, gx, gy, gz, _nothing2, shaft_pps, temperature, pressure = struct.unpack("<hhhhhhhhhhhhhhlddd", pkt)
+        magX, magY, magZ, _nothing1, qw, qx, qy, qz, lax, lay, laz, gx, gy, gz, temperature, pressure, shaft_pps, _nothing2 = struct.unpack("<hhhhhhhhhhhhhhffdl", pkt)
         print(magX, magY, magZ, lax, lay, laz, gx, gy, gz, shaft_pps, temperature, pressure)
 
         rot = transforms3d.quaternions.quat2mat([qw, qx, qy, qz])
