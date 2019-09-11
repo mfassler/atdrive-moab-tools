@@ -9,6 +9,8 @@ import select
 import socket
 import struct
 import numpy as np
+import transforms3d
+
 
 from UbloxParser import UbloxParser
 from NmeaParser import NmeaParser
@@ -24,21 +26,15 @@ mavlink = MavlinkHandler(config.MAVLINK_IP_ADDRESS)
 #ublox = UbloxParser(mavlink)
 nmea = NmeaParser(mavlink)
 
-shaft = ShaftEncoder(config.SHAFT_ENCODER_DISTANCE)
-
 
 ## We need to listen for certain UDP packets coming from the Moab:
 #UBLOX_RX_PORT = 27110
 #gps_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 #gps_sock.bind(("0.0.0.0", UBLOX_RX_PORT))
 
-COMPASS_RX_PORT = 27111
-mag_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-mag_sock.bind(("0.0.0.0", COMPASS_RX_PORT))
-
-ODOMETRY_RX_PORT = 27112
-odo_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-odo_sock.bind(("0.0.0.0", ODOMETRY_RX_PORT))
+IMU_RX_PORT = 27114
+imu_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+imu_sock.bind(("0.0.0.0", IMU_RX_PORT))
 
 NMEA_RX_PORT = 27113
 gps_sock_nmea = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -47,6 +43,7 @@ gps_sock_nmea.bind(("0.0.0.0", NMEA_RX_PORT))
 LIDAR_NAV_RX_PORT = 11546
 lidar_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 lidar_sock.bind(("0.0.0.0", LIDAR_NAV_RX_PORT))
+
 
 ## We will send lat, lon, heading, and speed to the Autopilot program
 NAV_PORT_OUT = 27201
@@ -62,15 +59,12 @@ est_heading = 0.0
 compass_rot_offset = np.radians(config.compass_rotation_offset_degrees)
 
 
-def parse_compass_packet(pkt):
-    assert len(pkt) == 6
+def rx_compass_packet(x, y, z):
     global xx_avg
     global yy_avg
     global zz_avg
     global rot_matrix
     global est_heading
-
-    x, y, z = struct.unpack("<hhh", pkt)
 
     xx = (x - config.compass_x_center) / config.compass_x_range
     yy = (y - config.compass_x_center) / config.compass_y_range
@@ -88,13 +82,13 @@ def parse_compass_packet(pkt):
     rot_matrix = np.array([[ cosYaw, sinYaw],
                            [-sinYaw, cosYaw]])
 
-    norm = np.sqrt(xx**2 + yy**2 + zz**2)
+    #norm = np.sqrt(xx**2 + yy**2 + zz**2)
 
-    #hdg = np.degrees(np.arctan2(xx, yy)) - 7.5
     mavlink.send_attitude(0, 0, est_heading)
     #print('%.0f ' % (hdg), norm)
 
 
+est_speed = 0.0
 est_lat = None
 est_lon = None
 
@@ -151,9 +145,8 @@ def get_last_packet(sock, pkt_len=1500):
     return data, addr
 
 
-_last_odo_ts = None
 while True:
-    inputs, outputs, errors = select.select([gps_sock_nmea, mag_sock, odo_sock, lidar_sock, mavlink._sock], [], [], 0.2)
+    inputs, outputs, errors = select.select([gps_sock_nmea, imu_sock, lidar_sock, mavlink._sock], [], [], 0.2)
     for oneInput in inputs:
         if False:
             # TODO:  what is the max packet size of Ublox?
@@ -185,15 +178,23 @@ while True:
                     est_lon = nmea.lon
                     mavlink.send_gps(est_lat, est_lon, nmea.alt)
 
-        elif oneInput == mag_sock:
-            pkt, addr = mag_sock.recvfrom(1500)
-            try:
-                parse_compass_packet(pkt)
-            except Exception as ee:
-                print('failed to parse compass packet:', ee)
+        elif oneInput == imu_sock:
+            pkt, addr = get_last_packet(imu_sock, 128)
+            if len(pkt) != 48:
+                print('imu packet is wrong length:', len(pkt))
+            else:
+                magX, magY, magZ, _nothing1, \
+                qw, qx, qy, qz, lax, lay, laz, gx, gy, gz, \
+                temperature, pressure, sbus_a, sbus_b, shaft_pps \
+                    = struct.unpack("<hhhhhhhhhhhhhhffHHd", pkt)
+                rx_compass_packet(magX, magY, magZ)
+                #rot = transforms3d.quaternions.quat2mat([qw, qx, qy, qz])
+                #hdg = -np.arctan2(rot[1, 0], rot[0,0]) + np.radians(-72.5)
+                #est_heading = np.degrees(hdg)
+                #mavlink.send_attitude(0, 0, est_heading)
 
-        elif oneInput == odo_sock:
-            shaft.get_all_packets(odo_sock)
+                est_speed = shaft_pps
+
 
         elif oneInput == mavlink._sock:
             pkt, addr = mavlink._sock.recvfrom(512)
@@ -225,10 +226,10 @@ while True:
 
 
     #shaft.update_speed_estimate()
-    print('speed: %.02f' % (shaft.current_speed))
-    mavlink.send_vfr_hud(shaft.current_speed)
+    print('speed: %.02f' % (est_speed))
+    mavlink.send_vfr_hud(est_speed)
     if est_lat is not None and est_lon is not None and est_heading is not None:
-        nav_udp_packet = struct.pack('!dddd', est_lat, est_lon, est_heading, shaft.current_speed)
+        nav_udp_packet = struct.pack('!dddd', est_lat, est_lon, est_heading, est_speed)
         nav_sock.sendto(nav_udp_packet, ('127.0.0.1',NAV_PORT_OUT))
 
 
