@@ -50,9 +50,21 @@ class NmeaParser:
             self.parse_RMC(pkt)
         elif pkt.startswith(b'$GNRMC'):
             self.parse_RMC(pkt)
+        elif pkt.startswith(b'$GNGLL'):
+            self.parse_GLL(pkt)
+
+    def parse_GLL(self, pkt):
+        #print('parsing GLL')
+        pieces = pkt.split(b',')
+        self.gpsFix = 3
+        ts = time.time()
+        ts_us = int(round(ts*1e6))
+        self.lat = convertLatLon(pieces[1], pieces[2])
+        self.lon = convertLatLon(pieces[3], pieces[4])
+        self._mavlink.send_raw_gps(ts_us, self.gpsFix, self.lat, self.lon, self.alt, 5)
 
     def parse_RMC(self, pkt):
-        print('parsing...')
+        print('parsing RMC...')
         pieces = pkt.split(b',')
         ## From the NMEA protocol:
         # pieces[0] -> "$GPRMC"
@@ -79,7 +91,7 @@ class NmeaParser:
         pyTime = pyTime.replace(tzinfo=pytz.UTC)
         #print(pyTime.timestamp() - time.time())
         ts = pyTime.timestamp()
-        print(ts)
+        #print(ts)
         ts_us = int(round(ts*1e6))
         self.lat = convertLatLon(pieces[3], pieces[4])
         self.lon = convertLatLon(pieces[5], pieces[6])
