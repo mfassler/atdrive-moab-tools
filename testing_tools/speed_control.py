@@ -105,7 +105,12 @@ class SpeedControl:
         self._offset = 0.0
 
     def set_actual(self, actual_pps):
-        self._actual_pps = actual_pps
+        # trying to avoid accumulating rounding errors (/noise) when close to 0:
+        if actual_pps < 1.0:
+            self._actual_pps = 0
+            self._I *= 0.99
+        else:
+            self._actual_pps = actual_pps
 
     def set_target(self, target_pps):
         self._target_pps = target_pps
