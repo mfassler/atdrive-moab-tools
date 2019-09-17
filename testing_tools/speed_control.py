@@ -55,8 +55,8 @@ for y in np.arange(100, 800, 100):
     blankLine[y, 0] = (180, 0, 0)
     blankLine[y+1, 0] = (255, 128, 128)
 
-cv.imshow('asd', amap)
-cv.moveWindow('asd', 20, 20)
+cv.imshow('asdf', amap)
+cv.moveWindow('asdf', 20, 20)
 cv.waitKey(1)
 
 
@@ -82,9 +82,8 @@ def update_scrolling_data(actual_pps, target_pps):
     cv.circle(amap, (798, tpy), 3, (0,96, 0), -1)
     cv.circle(amap, (798, py), 2, (0,0,220), -1)
 
-    cv.imshow('asd', amap)
+    cv.imshow('asdf', amap)
     cv.waitKey(1)
-
 
 
 
@@ -95,15 +94,14 @@ class SpeedControl:
         self._last_sbus_time = 0
         self._MOAB_COMPUTER = "192.168.29.201"
         self._MOAB_PORT = 12346
-        self._ts = [time.time()] * 45
-        self._error = [0.0] * 45
         self._actual_pps = 0
         self._target_pps = 0
-        self.K_p = 10.0
-        self.K_i = 5.0
+        self.K_p = 5.0
+        self.K_i = 1.2
         self.K_d = 0.0
-        self.wtf__I = 0
-        self.wtf_sbus = -1
+        self._e = 0.0
+        self._I = 0
+        self._sbus_throttle = 1024
         self._offset = 0.0
 
     def set_actual(self, actual_pps):
@@ -112,60 +110,38 @@ class SpeedControl:
     def set_target(self, target_pps):
         self._target_pps = target_pps
 
-    def update_error(self):
-        ts = time.time()
-        error = self._target_pps - self._actual_pps
-        self._ts.append(ts)
-        self._error.append(error)
-        while len(self._ts) > 15:
-            self._ts.pop(0)
-        while len(self._error) > 15:
-            self._error.pop(0)
-
     def maybe_do_something(self):
         ts = time.time()
         if (ts - self._last_sbus_time) > 0.1:
             self._last_sbus_time = ts
-            self.update_error()
 
-            I = 0
-            for i in range(len(self._error) - 1):
-                tDelta = self._ts[i+1] - self._ts[i]
-                e = self._error[i+1] # - self._error[i]
-                I += e*tDelta
+            self._e = self._target_pps - self._actual_pps
+            self._I += self._e
 
-            if I > 20:
-                I = 20
-            elif I < -20:
-                I = -20
+            if self._I > 600:
+                self._I = 600
+            elif self._I < -600:
+                self._I = -600
 
-            self.wtf__I = I
+            output = self.K_p * self._e + self.K_i * self._I
 
-            #e = self._error[-1]
+            if output < -200:
+                output = -200
+            elif output > 670:
+                output = 670
 
-            self._offset += 0.5 * I
+            self._sbus_throttle = 1024 + int(round(output))
 
-            #print("%.02f %.02f" % (e, self._offset))
-
-            #output = self.K_p * self._error[-1] + self.K_i * I # + self._offset
-            output = self.K_p * self._error[-1] + self._offset
-            if output < 0:
-                output = 0
-            elif output > 370:
-                output = 370
-
-            sbus_val = 1024 + int(round(output))
-
-            self.wtf_sbus = sbus_val
-
-            udpPacket = struct.pack('HH', 1024, sbus_val)
+            udpPacket = struct.pack('HH', 1024, self._sbus_throttle)
             self.moab_sock.sendto(udpPacket, (self._MOAB_COMPUTER, self._MOAB_PORT))
+            print("%.02f %.02f %d" % (self._e, self._I, self._sbus_throttle))
 
 
 
 speedControl = SpeedControl()
 
 
+actual_pps = 0
 target_pps = 0
 
 while True:
@@ -181,10 +157,10 @@ while True:
                 temperature, pressure, sbus_a, sbus_b, shaft_pps = \
                 struct.unpack("<hhhhhhhhhhhhhhffHHd", pkt)
 
-                #print(temperature, pressure, shaft_pps, target_pps)
+                actual_pps = 0.6 * actual_pps + 0.4 * shaft_pps
 
-                update_scrolling_data(shaft_pps, target_pps)
-                speedControl.set_actual(shaft_pps)
+                update_scrolling_data(actual_pps, target_pps)
+                speedControl.set_actual(actual_pps)
                 speedControl.maybe_do_something()
 
         if oneInput == cmd_sock:
@@ -193,8 +169,8 @@ while True:
                 target_pps = float(pkt)
                 if target_pps < 0:
                     target_pps = 0
-                elif target_pps > 55:
-                    target_pps = 55
+                elif target_pps > 90:
+                    target_pps = 90
             except:
                 print(' *********** wtf *********')
             else:
