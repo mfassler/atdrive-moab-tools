@@ -1,9 +1,14 @@
 
 
 MOAB_IP_ADDRESS = "192.168.31.201"
-MAVLINK_IP_ADDRESS = "192.168.31.176"
+MAVLINK_IP_ADDRESS = "192.168.31.80"
 
-SHAFT_ENCODER_DISTANCE = 0.09  # 9 cm per tick
+Nav_Recipients = [
+    ('127.0.0.1', 27201),
+    ('127.0.0.1', 27202),
+]
+
+SHAFT_ENCODER_DISTANCE = 0.045  # 4.5 cm per tick
 
 compass_x_range = 325 / 2.0
 compass_y_range = 325 / 2.0

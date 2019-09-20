@@ -46,9 +46,8 @@ lidar_sock.bind(("0.0.0.0", LIDAR_NAV_RX_PORT))
 
 
 ## We will send lat, lon, heading, and speed to the Autopilot program
-NAV_PORT_OUT = 27201
 nav_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-nav_sock.bind(("127.0.0.1", 0))
+nav_sock.bind(("0.0.0.0", 0))
 
 xx_avg = 0.0
 yy_avg = 0.0
@@ -230,7 +229,8 @@ while True:
     mavlink.send_vfr_hud(est_speed)
     if est_lat is not None and est_lon is not None and est_heading is not None:
         nav_udp_packet = struct.pack('!dddd', est_lat, est_lon, est_heading, est_speed)
-        nav_sock.sendto(nav_udp_packet, ('127.0.0.1',NAV_PORT_OUT))
+        for oneHost in config.Nav_Recipients:
+            nav_sock.sendto(nav_udp_packet, oneHost)
 
 
 
