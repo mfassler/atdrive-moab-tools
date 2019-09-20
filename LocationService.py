@@ -193,7 +193,7 @@ while True:
                 #est_heading = np.degrees(hdg)
                 #mavlink.send_attitude(0, 0, est_heading)
 
-                est_speed = shaft_pps
+                est_speed = shaft_pps * config.SHAFT_ENCODER_DISTANCE
 
 
         elif oneInput == mavlink._sock:
