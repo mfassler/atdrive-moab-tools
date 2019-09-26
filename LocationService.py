@@ -16,6 +16,9 @@ from UbloxParser import UbloxParser
 from NmeaParser import NmeaParser
 from ShaftEncoder import ShaftEncoder
 
+from ImuPacket import ImuPacket
+imu = ImuPacket()
+
 from utils import get_new_gps_coords
 from MavlinkHandler import MavlinkHandler
 
@@ -55,7 +58,7 @@ zz_avg = 0.0
 rot_matrix = np.array([[1, 0], [0, 1]])
 est_heading = 0.0
 
-compass_rot_offset = np.radians(config.compass_rotation_offset_degrees)
+compass_rot_offset = np.radians(config.mag_declination)
 
 
 def rx_compass_packet(x, y, z):
@@ -179,20 +182,18 @@ while True:
 
         elif oneInput == imu_sock:
             pkt, addr = get_last_packet(imu_sock, 128)
-            if len(pkt) != 48:
-                print('imu packet is wrong length:', len(pkt))
+            try:
+                imu.parse(pkt)
+            except Exception as ee:
+                print('failed to parse imu packet:', ee)
             else:
-                magX, magY, magZ, _nothing1, \
-                qw, qx, qy, qz, lax, lay, laz, gx, gy, gz, \
-                temperature, pressure, sbus_a, sbus_b, shaft_pps \
-                    = struct.unpack("<hhhhhhhhhhhhhhffHHd", pkt)
-                rx_compass_packet(magX, magY, magZ)
-                #rot = transforms3d.quaternions.quat2mat([qw, qx, qy, qz])
-                #hdg = -np.arctan2(rot[1, 0], rot[0,0]) + np.radians(-72.5)
-                #est_heading = np.degrees(hdg)
-                #mavlink.send_attitude(0, 0, est_heading)
+                #rx_compass_packet(imu.magX, imu.magY, imu.magZ)
+                rot = transforms3d.quaternions.quat2mat([imu.qw, imu.qx, imu.qy, imu.qz])
+                hdg = -np.arctan2(rot[1, 0], rot[0,0]) + np.radians(config.mag_declination)
+                est_heading = np.degrees(hdg)
+                mavlink.send_attitude(0, 0, est_heading)
 
-                est_speed = shaft_pps * config.SHAFT_ENCODER_DISTANCE
+                est_speed = imu.shaft_pps * config.SHAFT_ENCODER_DISTANCE
 
 
         elif oneInput == mavlink._sock:

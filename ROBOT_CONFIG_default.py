@@ -1,7 +1,7 @@
 
 
 MOAB_IP_ADDRESS = "192.168.29.201"
-MAVLINK_IP_ADDRESS = "192.168.29.176"
+MAVLINK_IP_ADDRESS = "192.168.29.80"
 
 Nav_Recipients = [
     ('127.0.0.1', 27201),
@@ -18,7 +18,7 @@ compass_x_center = -52.5
 compass_y_center = 48.0
 compass_z_center = -77.0
 
-compass_rotation_offset_degrees = 7.57
+mag_declination = -7.5  # Tokyo
 
 lidar_ref_angle = 45.0
 lidar_ref_lat = 35.6535

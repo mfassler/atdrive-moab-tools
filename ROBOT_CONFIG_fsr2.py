@@ -18,8 +18,7 @@ compass_x_center = -207.5
 compass_y_center = 87.0
 compass_z_center = -77.0
 
-compass_rotation_offset_degrees = -7.0
-
+mag_declination = -7.5  # Tokyo
 
 lidar_ref_angle = 45.0
 lidar_ref_lat = 35.6535
