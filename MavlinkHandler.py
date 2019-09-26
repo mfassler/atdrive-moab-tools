@@ -56,6 +56,7 @@ class MavlinkHandler:
             self._sock.sendto(msgBuf, (self._remote_addr, self._remote_port))
 
     def send_attitude(self, roll, pitch, yaw):
+        "roll, pitch, and yaw are in radians"
         self.heartbeat()
         self._heading = int(round(yaw*100))
         while self._heading < 0:
@@ -67,7 +68,7 @@ class MavlinkHandler:
 
             msg = mavlink1.MAVLink_attitude_message(
                 time_boot_ms,
-                math.radians(roll), math.radians(pitch), math.radians(yaw),
+                roll, pitch, yaw,
                 rollspeed, pitchspeed, yawspeed
             )
             msgBuf = msg.pack(self._mav)

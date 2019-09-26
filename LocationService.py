@@ -190,8 +190,11 @@ while True:
                 #rx_compass_packet(imu.magX, imu.magY, imu.magZ)
                 rot = transforms3d.quaternions.quat2mat([imu.qw, imu.qx, imu.qy, imu.qz])
                 hdg = -np.arctan2(rot[1, 0], rot[0,0]) + np.radians(config.mag_declination)
+
+                pitch, roll, yaw = transforms3d.euler.mat2euler(rot)
+
                 est_heading = np.degrees(hdg)
-                mavlink.send_attitude(0, 0, est_heading)
+                mavlink.send_attitude(roll, pitch, hdg)
 
                 est_speed = imu.shaft_pps * config.SHAFT_ENCODER_DISTANCE
 
@@ -221,7 +224,7 @@ while True:
                     est_lon = lon
                 est_lat = 0.9*est_lat + 0.1*lat
                 est_lon = 0.9*est_lon + 0.1*lon
-                mavlink.send_attitude(0, 0, est_heading)
+                mavlink.send_attitude(0, 0, hdg)
                 mavlink.send_gps(est_lat, est_lon, 4000)
 
 
