@@ -10,15 +10,15 @@ Nav_Recipients = [
 
 SHAFT_ENCODER_DISTANCE = 0.045  # 4.5 cm per tick
 
-compass_x_range = 325 / 2.0
-compass_y_range = 325 / 2.0
-compass_z_range = 326 / 2.0
+compass_x_range = 2178.0
+compass_y_range = 2110.5
+compass_z_range = 2100 # not used
 
-compass_x_center = -207.5
-compass_y_center = 87.0
-compass_z_center = -77.0
+compass_x_center = 825.0
+compass_y_center = -690.5
+compass_z_center = 0.0 # not used
 
-mag_declination = -7.5  # Tokyo
+mag_declination = -7.57  # Tokyo
 
 lidar_ref_angle = 45.0
 lidar_ref_lat = 35.6535
