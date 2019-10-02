@@ -22,7 +22,11 @@ imu = ImuPacket()
 from utils import get_new_gps_coords
 from MavlinkHandler import MavlinkHandler
 
-import ROBOT_CONFIG as config
+try:
+    import ROBOT_CONFIG as config
+except:
+    import ROBOT_CONFIG_default as config
+
 
 mavlink = MavlinkHandler(config.MAVLINK_IP_ADDRESS)
 
