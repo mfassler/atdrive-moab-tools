@@ -73,8 +73,8 @@ def rx_compass_packet(x, y, z):
     global est_heading
 
     xx = (x - config.compass_x_center) / config.compass_x_range
-    yy = (y - config.compass_x_center) / config.compass_y_range
-    zz = (z - config.compass_x_center) / config.compass_z_range
+    yy = (y - config.compass_y_center) / config.compass_y_range
+    zz = (z - config.compass_z_center) / config.compass_z_range
 
     xx_avg = 0.5 * xx_avg + 0.5 * xx
     yy_avg = 0.5 * yy_avg + 0.5 * yy
