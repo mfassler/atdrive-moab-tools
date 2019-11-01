@@ -41,6 +41,8 @@ class NmeaParser:
         self.lat = 0.0
         self.lon = 0.0
         self.alt = 0.0
+        self.speed = None
+        self.true_course = None
         self.gpsFix = 0
         self._mavlink = mavlink
 
@@ -95,6 +97,16 @@ class NmeaParser:
         ts_us = int(round(ts*1e6))
         self.lat = convertLatLon(pieces[3], pieces[4])
         self.lon = convertLatLon(pieces[5], pieces[6])
+        try:
+            self.speed = float(pieces[7]) * 0.5144444  # knots to m/s
+        except:
+            self.speed = None
+
+        try:
+            self.true_course = float(pieces[8])
+        except:
+            self.true_course = None
+
         self._mavlink.send_raw_gps(ts_us, self.gpsFix, self.lat, self.lon, self.alt, 5)
 
 
