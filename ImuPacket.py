@@ -8,8 +8,8 @@ this is the packet structure in C:
     struct multi_data {
 
         // 64 bits:
+        int16_t version;
         int16_t compass_XYZ[3];  // external compass
-        int16_t _padding1;  // the compiler seems to like 64-bit boundaries
 
         // 3 * 64 bits:
         char bnoData[22];  // internal IMU
@@ -26,8 +26,11 @@ this is the packet structure in C:
         // 64 bits:
         uint16_t sbus_a;
         uint16_t sbus_b;
-        uint16_t _padding3;
-        uint16_t _padding4;
+        uint16_t _padding3;  // 64-bit boundary
+        uint16_t _padding4;  // 64-bit boundary
+
+        // Everything ABOVE here is the official, "version 1" of this protocol
+        // Everything BELOW here is extra, and might change in the future
 
         // 64 bits:
         // TODO:  do we really need float64 for these numbers?
@@ -43,14 +46,24 @@ class ImuPacket:
         pass
 
     def parse(self, pkt):
-        self.magX, self.magY, self.magZ, self._padding1, \
-            self.qw, self.qx, self.qy, self.qz, \
-            self.lax, self.lay, self.laz, self.gx, self.gy, self.gz, \
-            self.imu_temp, self.calib_stat, \
-            self._padding2, \
-            self.temperature, self.pressure, \
-            self.sbus_a, self.sbus_b, self._padding3, self._padding4, \
-            self.shaft_pps = struct.unpack('<hhhhhhhhhhhhhhbBhffHHhhd', pkt[:56])
+        version, = struct.unpack('<h', pkt[:2])
+
+        if version == 1:
+            self.version, self.magX, self.magY, self.magZ, \
+                self.qw, self.qx, self.qy, self.qz, \
+                self.lax, self.lay, self.laz, self.gx, self.gy, self.gz, \
+                self.imu_temp, self.calib_stat, \
+                self._padding2, \
+                self.temperature, self.pressure, \
+                self.sbus_a, self.sbus_b, self._padding3, self._padding4 \
+                    = struct.unpack('<hhhhhhhhhhhhhhbBhffHHhh', pkt[:48])
+
+            self._extra = pkt[48:]
+            self.shaft_pps, = struct.unpack('<d', self._extra[:8])
+        else:
+            print("unknown IMU packet version:", version)
+
+
 
 
 
