@@ -50,7 +50,7 @@ class ImuPacket:
             self._padding2, \
             self.temperature, self.pressure, \
             self.sbus_a, self.sbus_b, self._padding3, self._padding4, \
-            self.shaft_pps = struct.unpack('<hhhhhhhhhhhhhhbBhffHHhhd', pkt)
+            self.shaft_pps = struct.unpack('<hhhhhhhhhhhhhhbBhffHHhhd', pkt[:56])
 
 
 
