@@ -37,14 +37,17 @@ nmea = NmeaParser(mavlink)
 ## We need to listen for certain UDP packets coming from the Moab:
 #UBLOX_RX_PORT = 27110
 #gps_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+#gps_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
 #gps_sock.bind(("0.0.0.0", UBLOX_RX_PORT))
 
 IMU_RX_PORT = 27114
 imu_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+imu_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
 imu_sock.bind(("0.0.0.0", IMU_RX_PORT))
 
 NMEA_RX_PORT = 27113
 gps_sock_nmea = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+gps_sock_nmea.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
 gps_sock_nmea.bind(("0.0.0.0", NMEA_RX_PORT))
 
 LIDAR_NAV_RX_PORT = 11546
