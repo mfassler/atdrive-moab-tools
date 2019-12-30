@@ -1,11 +1,8 @@
 
-
 import struct
 import time
 import datetime
 import pytz
-
-
 
 
 
@@ -30,10 +27,8 @@ def convertLatLon(inStr, hemisphere):
 
 
 
-
-
 class NmeaParser:
-    def __init__(self, mavlink):
+    def __init__(self):
         self._avg_lag = 0.0
         self.ecefX = 0
         self.ecefY = 0
@@ -44,7 +39,6 @@ class NmeaParser:
         self.speed = None
         self.true_course = None
         self.gpsFix = 0
-        self._mavlink = mavlink
 
 
     def parse_nmea_packet(self, pkt):
@@ -56,14 +50,8 @@ class NmeaParser:
             self.parse_GLL(pkt)
 
     def parse_GLL(self, pkt):
-        #print('parsing GLL')
-        pieces = pkt.split(b',')
-        self.gpsFix = 3
-        ts = time.time()
-        ts_us = int(round(ts*1e6))
-        self.lat = convertLatLon(pieces[1], pieces[2])
-        self.lon = convertLatLon(pieces[3], pieces[4])
-        self._mavlink.send_raw_gps(ts_us, self.gpsFix, self.lat, self.lon, self.alt, 5)
+        pass
+
 
     def parse_RMC(self, pkt):
         print('parsing RMC...')
@@ -93,8 +81,8 @@ class NmeaParser:
         pyTime = pyTime.replace(tzinfo=pytz.UTC)
         #print(pyTime.timestamp() - time.time())
         ts = pyTime.timestamp()
-        #print(ts)
-        ts_us = int(round(ts*1e6))
+
+        self.ts_us = int(round(ts*1e6))
         self.lat = convertLatLon(pieces[3], pieces[4])
         self.lon = convertLatLon(pieces[5], pieces[6])
         try:
@@ -106,8 +94,5 @@ class NmeaParser:
             self.true_course = float(pieces[8])
         except:
             self.true_course = None
-
-        self._mavlink.send_raw_gps(ts_us, self.gpsFix, self.lat, self.lon, self.alt, 5)
-
 
 

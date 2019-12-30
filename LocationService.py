@@ -31,7 +31,7 @@ except:
 mavlink = MavlinkHandler(config.MAVLINK_IP_ADDRESS)
 
 #ublox = UbloxParser(mavlink)
-nmea = NmeaParser(mavlink)
+nmea = NmeaParser()
 
 
 ## We need to listen for certain UDP packets coming from the Moab:
@@ -185,6 +185,7 @@ while True:
                 if nmea.gpsFix == 3:
                     est_lat = nmea.lat
                     est_lon = nmea.lon
+                    mavlink.send_raw_gps(nmea.ts_us, nmea.gpsFix, nmea.lat, nmea.lon, nmea.alt, 5)
                     mavlink.send_gps(est_lat, est_lon, nmea.alt)
 
         elif oneInput == imu_sock:
