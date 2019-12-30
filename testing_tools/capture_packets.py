@@ -33,7 +33,7 @@ moab_status_sock.bind(("0.0.0.0", MOAB_STATUS_PORT))
 SBUS_RX_PORT = 31338
 sbus_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sbus_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-sbus_sock.bind(("0.0.0.0", IMU_RX_PORT))
+sbus_sock.bind(("0.0.0.0", SBUS_RX_PORT))
 
 
 f = open(sys.argv[1], 'wb')
