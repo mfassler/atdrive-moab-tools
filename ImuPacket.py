@@ -43,7 +43,9 @@ this is the packet structure in C:
 
 class ImuPacket:
     def __init__(self):
-        pass
+        self.shaft_pps = 0
+        self.shaft_a_pps = 0
+        self.shaft_b_pps = 0
 
     def parse(self, pkt):
         version, = struct.unpack('<h', pkt[:2])
@@ -59,7 +61,14 @@ class ImuPacket:
                     = struct.unpack('<hhhhhhhhhhhhhhbBhffHHhh', pkt[:48])
 
             self._extra = pkt[48:]
-            self.shaft_pps, = struct.unpack('<d', self._extra[:8])
+            if len(self._extra) == 8:
+                self.shaft_pps, = struct.unpack('<d', self._extra[:8])
+            elif len(self._extra) == 16:
+                self.shaft_a_pps, = struct.unpack('<d', self._extra[:8])
+                self.shaft_b_pps, = struct.unpack('<d', self._extra[8:16])
+            else:
+                print('unknown "extra" field')
+
         else:
             print("unknown IMU packet version:", version)
 
