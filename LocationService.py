@@ -16,8 +16,11 @@ from UbloxParser import UbloxParser
 from NmeaParser import NmeaParser
 from ShaftEncoder import ShaftEncoder
 from CalcHeading import CalcHeading
+from SbusParser import SbusParser, Flight_Mode
 
 from ImuPacket import ImuPacket
+
+sbus = SbusParser()
 imu = ImuPacket()
 calcHeading = CalcHeading()
 
@@ -57,6 +60,11 @@ LIDAR_NAV_RX_PORT = 11546
 lidar_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 lidar_sock.bind(("0.0.0.0", LIDAR_NAV_RX_PORT))
 
+SBUS_PORT = 31338
+#sbus_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+#sbus_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+#sbus_sock.bind(("0.0.0.0", SBUS_PORT))
+
 
 ## We will send lat, lon, heading, and speed to the Autopilot program
 nav_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -95,9 +103,10 @@ def parse_lidar_nav_packet(udpPacket):
         return newLat, newLon, heading+ref_angle
 
 
-
+#allSockets = [gps_sock_nmea, imu_sock, lidar_sock, mavlink._sock, sbus_sock]
+allSockets = [gps_sock_nmea, imu_sock, lidar_sock, mavlink._sock]
 while True:
-    inputs, outputs, errors = select.select([gps_sock_nmea, imu_sock, lidar_sock, mavlink._sock], [], [], 0.2)
+    inputs, outputs, errors = select.select(allSockets, [], [], 0.2)
     for oneInput in inputs:
         if False:
             # TODO:  what is the max packet size of Ublox?
@@ -200,6 +209,28 @@ while True:
                 est_lon = 0.9*est_lon + 0.1*lon
                 mavlink.send_attitude(0, 0, hdg)
                 mavlink.send_gps(est_lat, est_lon, 4000)
+
+        elif oneInput == sbus_sock:
+            pkt, addr = get_last_packet(sbus_sock, 64)
+            try:
+                flight_mode = sbus.parse_packet(pkt)
+            except Exception as ee:
+                print('failed to parse S.Bus packet:', ee)
+            else:
+                if flight_mode is not None:
+                    if flight_mode == Flight_Mode.STOP:
+                        mavlink.custom_mode = 4
+                        mavlink.heartbeat(force=True)
+                    elif flight_mode == Flight_Mode.MANUAL:
+                        mavlink.custom_mode = 0
+                        mavlink.heartbeat(force=True)
+                    elif flight_mode == Flight_Mode.AUTO:
+                        mavlink.custom_mode = 10
+                        #mavlink.custom_mode = 15 # Guided
+                        mavlink.heartbeat(force=True)
+                    else:
+                        print("BUG: unknown flight mode")
+
 
 
     #shaft.update_speed_estimate()

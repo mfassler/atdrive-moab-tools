@@ -7,7 +7,7 @@ import struct
 import numpy as np
 
 from builtins import object
-from pymavlink.dialects.v10 import ardupilotmega as mavlink1
+from pymavlink.dialects.v20 import ardupilotmega as mavlink1
 
 
 
@@ -29,7 +29,7 @@ class MavlinkHandler:
         self._remote_port = remote_port
         self._sock.bind(("0.0.0.0", 0))
         f = fifo()
-        self._mav = mavlink1.MAVLink(f)
+        self._mav = mavlink1.MAVLink(f, srcSystem=1, srcComponent=1)
 
         self._last_heartbeat_time = time.time()
         self._last_attitude_time = time.time()
@@ -38,19 +38,42 @@ class MavlinkHandler:
         self._heading = 0
         self._mission_count = 0
         self._mission_items = []
+        self.custom_mode = 0
 
-    def heartbeat(self):
-        if (time.time() - self._last_heartbeat_time) > 1.0:
+    def heartbeat(self, force=False):
+        if force or ((time.time() - self._last_heartbeat_time) > 1.0):
             self._last_heartbeat_time = time.time()
             ## _type, autopilot, base_mode, custom_mode, system_status, mavlink_version
             _type = 10
-            autopilot = 0
-            base_mode = 128 + 64
-            custom_mode = 65
+            autopilot = 3
+            #base_mode = 0xff # 128 | 64 | 8 | 4
+            base_mode = 128 | 64 | 16 | 8 | 4
+            #custom_mode = 65
+            #custom_mode = 0 # Manual
+            #custom_mode = 4 # Hold
+            custom_mode = 10 # Auto
+            #custom_mode = 15 # Guided
             system_status = 4
-            mavlink_version = 1
+            mavlink_version = 3
+
+            # Manual Mode:
+            #_type = 10
+            #autopilot = 3
+            #base_mode = 193
+            #custom_mode = 4
+            #system_status = 5
+            #mavlink_version = 3
+
+            # HOLD Mode:
+            #_type = 10
+            #autopilot = 3
+            #base_mode = 192 # 129
+            #custom_mode = 4
+            #system_status = 5
+            #mavlink_version = 3
+
             msg = mavlink1.MAVLink_heartbeat_message(
-                _type, autopilot, base_mode, custom_mode, system_status, mavlink_version)
+                _type, autopilot, base_mode, self.custom_mode, system_status, mavlink_version)
 
             msgBuf = msg.pack(self._mav)
             self._sock.sendto(msgBuf, (self._remote_addr, self._remote_port))
@@ -113,6 +136,11 @@ class MavlinkHandler:
             msgBuf = msg.pack(self._mav)
             self._sock.sendto(msgBuf, (self._remote_addr, self._remote_port))
 
+    def send_text_message(self, message):
+        msg = mavlink1.MAVLink_statustext_message(0, message)
+        msgBuf = msg.pack(self._mav)
+        self._sock.sendto(msgBuf, (self._remote_addr, self._remote_port))
+
     def mission_request_list(self):
         msg = mavlink1.MAVLink_mission_request_list_message(1, 190)
         msgBuf = msg.pack(self._mav)
@@ -138,7 +166,13 @@ class MavlinkHandler:
                 self.mission_request(i)
         elif oneMsg.name == 'MISSION_ITEM':
             print(oneMsg.name)
+            #self.send_text_message(b"hi there")
+            #return
             item = oneMsg.to_dict()
+            self._a_mission_item = item
+            if item['param2'] < 0.01:
+                print("Guided Mode")
+                return
             self._mission_items[item['seq']] = item
             allSomething = True
             for oneItem in self._mission_items:
@@ -154,6 +188,51 @@ class MavlinkHandler:
                 print("\n")
                 f.close()
                 sys.stdout.flush()
+                self.send_text_message(b"Wrote Mission")
+        elif oneMsg.name == 'PARAM_REQUEST_LIST':
+            print(oneMsg.name)
+            PARAMS = [
+                (b'MODE_CH', 5, 2),
+                (b'MODE3', 4.0, 2),
+                (b'MODE2', 11.0, 2),
+                (b'INITIAL_MODE', 0.0, 2),
+                (b'myStuff', 11, 2),
+            ]
+            #total = 664 # len(PARAMS)
+            total = len(PARAMS)
+            for i, item in enumerate(PARAMS):
+                # param_id, param_value, param_type, param_count, param_index
+                msg = mavlink1.MAVLink_param_value_message(item[0], item[1], item[2], total, i)
+                msgBuf = msg.pack(self._mav)
+                self._sock.sendto(msgBuf, (self._remote_addr, self._remote_port))
+            #msgBuf = b'\xfe\x19\x87\x01\x01\x16\x00\x00\x80@\x98\x02\x1d\x00MODE1\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02d"'
+            #self._sock.sendto(msgBuf, (self._remote_addr, self._remote_port))
 
+        elif oneMsg.name == 'PARAM_REQUEST_READ':
+            print(oneMsg.name)
+            self._aMsg = oneMsg
+        elif oneMsg.name == 'SET_MODE':
+            print(oneMsg.name)
+            if oneMsg.custom_mode == 0:
+                print('  ### MANUAL')
+            elif oneMsg.custom_mode == 4:
+                print('  ### HOLD')
+            elif oneMsg.custom_mode == 10:
+                print('  ### AUTO')
+                if self.custom_mode == 10 or self.custom_mode == 15:
+                    self.custom_mode = 10
+                    self.heartbeat(force=True)
+            elif oneMsg.custom_mode == 15:
+                print('  ### GUIDED')
+                if self.custom_mode == 10 or self.custom_mode == 15:
+                    self.custom_mode = 15
+                    self.heartbeat(force=True)
+            else:
+                print("uknown mode:", oneMsg.custom_mode)
+            
+        else:
+            print(oneMsg.name)
+            self._whee = oneMsg
+            print(self._whee.to_json())
 
 
