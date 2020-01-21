@@ -15,11 +15,14 @@ import transforms3d
 from UbloxParser import UbloxParser
 from NmeaParser import NmeaParser
 from ShaftEncoder import ShaftEncoder
+from CalcHeading import CalcHeading
 
 from ImuPacket import ImuPacket
 imu = ImuPacket()
+calcHeading = CalcHeading()
 
 from utils import get_new_gps_coords
+from misc_utils import get_last_packet
 from MavlinkHandler import MavlinkHandler
 
 try:
@@ -59,47 +62,12 @@ lidar_sock.bind(("0.0.0.0", LIDAR_NAV_RX_PORT))
 nav_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 nav_sock.bind(("0.0.0.0", 0))
 
-xx_avg = 0.0
-yy_avg = 0.0
-zz_avg = 0.0
-rot_matrix = np.array([[1, 0], [0, 1]])
-est_heading = 0.0
-
-compass_rot_offset = np.radians(config.mag_declination)
-
-
-def rx_compass_packet(x, y, z):
-    global xx_avg
-    global yy_avg
-    global zz_avg
-    global rot_matrix
-    global est_heading
-
-    xx = (x - config.compass_x_center) / config.compass_x_range
-    yy = (y - config.compass_y_center) / config.compass_y_range
-    zz = (z - config.compass_z_center) / config.compass_z_range
-
-    xx_avg = 0.5 * xx_avg + 0.5 * xx
-    yy_avg = 0.5 * yy_avg + 0.5 * yy
-    zz_avg = 0.5 * zz_avg + 0.5 * zz
-
-    # rotation matrix:
-    avg_rot = np.arctan2(xx_avg, yy_avg) + compass_rot_offset
-    est_heading = np.degrees(avg_rot)
-    cosYaw = np.cos(avg_rot)
-    sinYaw = np.sin(avg_rot)
-    rot_matrix = np.array([[ cosYaw, sinYaw],
-                           [-sinYaw, cosYaw]])
-
-    #norm = np.sqrt(xx**2 + yy**2 + zz**2)
-
-    mavlink.send_attitude(0, 0, est_heading)
-    #print('%.0f ' % (hdg), norm)
-
 
 est_speed = 0.0
 est_lat = None
 est_lon = None
+est_heading = None
+
 
 ref_angle = np.radians(config.lidar_ref_angle)
 rot_matrix = np.array([[ np.cos(ref_angle), np.sin(ref_angle)],
@@ -126,32 +94,6 @@ def parse_lidar_nav_packet(udpPacket):
 
         return newLat, newLon, heading+ref_angle
 
-
-
-def get_last_packet(sock, pkt_len=1500):
-    '''Empty out the UDP recv buffer and return only the final packet
-    (in case the GUI is slower than the data flow)
-    '''
-    sock.setblocking(0)
-    data = None
-    addr = None
-    cont=True
-    while cont:
-        try:
-            tmpData, addr = sock.recvfrom(pkt_len)
-        except Exception as ee:
-            #print(ee)
-            cont=False
-        else:
-            if tmpData:
-                if data is not None:
-                    #print('throwing away a packet (GUI is too slow)')
-                    pass
-                data = tmpData
-            else:
-                cont=False
-    sock.setblocking(1)
-    return data, addr
 
 
 while True:
@@ -185,6 +127,11 @@ while True:
                 if nmea.gpsFix == 3:
                     est_lat = nmea.lat
                     est_lon = nmea.lon
+                    if nmea.true_course is not None:
+                        # only update if we are driving straight forward:
+                        if np.abs(imu.sbus_a - 1024) < 20 and imu.sbus_b > 1030:
+                            calcHeading.calibrate_from_gps(nmea.true_course)
+
                     mavlink.send_raw_gps(nmea.ts_us, nmea.gpsFix, nmea.lat, nmea.lon, nmea.alt, 5)
                     mavlink.send_gps(est_lat, est_lon, nmea.alt)
 
@@ -195,16 +142,35 @@ while True:
             except Exception as ee:
                 print('failed to parse imu packet:', ee)
             else:
-                #rx_compass_packet(imu.magX, imu.magY, imu.magZ)
                 rot = transforms3d.quaternions.quat2mat([imu.qw, imu.qx, imu.qy, imu.qz])
-                hdg = -np.arctan2(rot[1, 0], rot[0,0]) + np.radians(config.mag_declination)
 
-                pitch, roll, yaw = transforms3d.euler.mat2euler(rot)
 
-                est_heading = np.degrees(hdg)
-                mavlink.send_attitude(roll, pitch, hdg)
+                ##################################################
+                # Coordinate change based on IMU mounting position
+                ##################################################
 
-                est_speed = imu.shaft_pps * config.SHAFT_ENCODER_DISTANCE
+                ## Mounted upside-down:
+                #xfrm = np.array([[-1, 0, 0],
+                #                 [0, 1, 0],
+                #                 [0, 0, -1]])
+
+                ## Mounted sideways (and yaw will be negative):
+                #xfrm = np.array([[, -1, 0],
+                #                 [1, 0, 0],
+                #                 [0, 0, -1]])
+                #rot = np.dot(xfrm, rot)
+
+                pitch, roll, _yaw = transforms3d.euler.mat2euler(rot)
+
+                calcHeading.update_gyro_yaw(-_yaw)
+                #calcHeading.update_magnet_yaw(imu.magX, imu.magY, imu.magZ)
+
+                est_heading = calcHeading.est_heading_degrees
+                mavlink.send_attitude(roll, pitch, calcHeading.est_heading_radians)
+
+                #shaft_pps = (imu.shaft_a_pps + imu.shaft_b_pps) * 0.5
+                shaft_pps = imu.shaft_pps
+                est_speed = shaft_pps * config.SHAFT_ENCODER_DISTANCE
 
 
         elif oneInput == mavlink._sock:
@@ -237,7 +203,8 @@ while True:
 
 
     #shaft.update_speed_estimate()
-    print('speed: %.02f' % (est_speed))
+    #print('speed: %.02f' % (est_speed))
+    #sys.stdout.flush()
     mavlink.send_vfr_hud(est_speed)
     if est_lat is not None and est_lon is not None and est_heading is not None:
         nav_udp_packet = struct.pack('!dddd', est_lat, est_lon, est_heading, est_speed)

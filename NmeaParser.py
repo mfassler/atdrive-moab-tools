@@ -54,7 +54,7 @@ class NmeaParser:
 
 
     def parse_RMC(self, pkt):
-        print('parsing RMC...')
+        #print('parsing RMC...')
         pieces = pkt.split(b',')
         ## From the NMEA protocol:
         # pieces[0] -> "$GPRMC"
