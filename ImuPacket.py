@@ -66,6 +66,7 @@ class ImuPacket:
             elif len(self._extra) == 16:
                 self.shaft_a_pps, = struct.unpack('<d', self._extra[:8])
                 self.shaft_b_pps, = struct.unpack('<d', self._extra[8:16])
+                self.shaft_pps = 0.5 * (self.shaft_a_pps + self.shaft_b_pps)
             else:
                 print('unknown "extra" field')
 
