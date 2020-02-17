@@ -1,0 +1,10 @@
+# Config changes format version 1.0
+# created by u-center version 19.08.01 at 17:13:36 on Friday, 11 Oct 2019
+#
+## Set 5 updates per second; 115200 baud rate
+#
+[del]
+[set]
+Flash CFG-RATE-MEAS        0x28                 # write value 40  0x28             to item id 30210001 in layer 2
+Flash CFG-RATE-NAV         0x5                  # write value 5  0x5               to item id 30210002 in layer 2
+Flash CFG-UART1-BAUDRATE   0x1c200              # write value 115200  0x1c200      to item id 40520001 in layer 2
