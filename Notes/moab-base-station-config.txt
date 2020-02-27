@@ -1,0 +1,26 @@
+# Config changes format version 1.0
+# created by u-center version 19.08.01 at 17:58:49 on Thursday, 27 Feb 2020
+[del]
+[set]
+Flash CFG-UART2OUTPROT-NMEA 0                    # write value 0                    to item id 10760002 in layer 2
+Flash CFG-TMODE-MODE       1                    # write value 1 - SURVEY_IN        to item id 20030001 in layer 2
+Flash CFG-MSGOUT-NMEA_ID_GSA_UART1 0x5                  # write value 5  0x5               to item id 209100c0 in layer
+Flash CFG-MSGOUT-NMEA_ID_GSV_I2C 0x0                  # write value 0  0x0               to item id 209100c4 in layer 2
+Flash CFG-MSGOUT-NMEA_ID_GSV_UART1 0x0                  # write value 0  0x0               to item id 209100c5 in layer
+Flash CFG-MSGOUT-NMEA_ID_GSV_UART2 0x0                  # write value 0  0x0               to item id 209100c6 in layer
+Flash CFG-MSGOUT-NMEA_ID_GSV_SPI 0x0                  # write value 0  0x0               to item id 209100c8 in layer 2
+Flash CFG-MSGOUT-RTCM_3X_TYPE1005_UART2 0x1                  # write value 1  0x1               to item id 209102bf in 
+Flash CFG-MSGOUT-RTCM_3X_TYPE1005_USB 0x1                  # write value 1  0x1               to item id 209102c0 in la
+Flash CFG-MSGOUT-RTCM_3X_TYPE1077_UART2 0x1                  # write value 1  0x1               to item id 209102ce in 
+Flash CFG-MSGOUT-RTCM_3X_TYPE1077_USB 0x1                  # write value 1  0x1               to item id 209102cf in la
+Flash CFG-MSGOUT-RTCM_3X_TYPE1087_UART2 0x1                  # write value 1  0x1               to item id 209102d3 in 
+Flash CFG-MSGOUT-RTCM_3X_TYPE1127_UART2 0x1                  # write value 1  0x1               to item id 209102d8 in 
+Flash CFG-MSGOUT-RTCM_3X_TYPE1097_UART2 0x1                  # write value 1  0x1               to item id 2091031a in 
+Flash CFG-RATE-MEAS        0xc8                 # write value 200  0xc8            to item id 30210001 in layer 2
+Flash CFG-RATE-NAV         0x1                  # write value 1  0x1               to item id 30210002 in layer 2
+Flash CFG-TMODE-SVIN_MIN_DUR 0x12c                # write value 300  0x12c           to item id 40030010 in layer 2
+Flash CFG-TMODE-SVIN_ACC_LIMIT 0x4e20               # write value 20000  0x4e20        to item id 40030011 in layer 2
+Flash CFG-UART1-BAUDRATE   0x1c200              # write value 115200  0x1c200      to item id 40520001 in layer 2
+Flash CFG-UART2-BAUDRATE   0x1c200              # write value 115200  0x1c200      to item id 40530001 in layer 2
+  RAM CFG-MSGOUT-NMEA_ID_GSV_USB 0x0                  # write value 0  0x0               to item id 209100c7 in layer 0
+Flash CFG-MSGOUT-NMEA_ID_GSV_USB 0x0                  # write value 0  0x0               to item id 209100c7 in layer 2

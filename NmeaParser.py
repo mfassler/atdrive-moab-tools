@@ -38,28 +38,144 @@ class NmeaParser:
         self.alt = 0.0
         self.speed = None
         self.true_course = None
-        self.gpsFix = 0
+        self.ts = None
+        self.ts_us = None
+
+        self.GGA_fix = 0
+        # NMEA-GGA fix is this:
+        #   0: none, 1: GPS, 2: DGPS, 4: RTK-fix, 5: RTK-float, 7: Manual, 8: Simulation
+
+        self.GSA_fix = 0
+        # NMEA-GSA fix is this:
+        #   0: none, 1: no fix, 2: 2d fix, 3: 3d fix
+
+        self.RMC_status = None
+        # NMEA-RSA status is this:
+        #   'A': active, 'V': void
+        #  we will set to Python's True or None
+
+        self.mavlink_fix = 0
+        # Mavlink fix is this:
+        #   0: no GPS connected
+        #   1: GPS connected, but no fix
+        #   2: 2D fix
+        #   3: 3D fix
+        #   4: DGPS / SBAS
+        #   5: RTK float
+        #   6: RTK fix
+        #   7: static fix (base station)
+        #   8: PPP, 3D position
+
+    def get_mavlink_fix(self):
+        if self.RMC_status:
+            if self.GSA_fix == 2:  # 2-D fix
+                return 2
+            elif self.GSA_fix == 3:  # 3-D fix
+                if self.GGA_fix == 1:  #plain GPS, no RTK
+                    return 3
+                elif self.GGA_fix == 2: # DGPS
+                    return 4
+                elif self.GGA_fix == 4: # RTK-fix
+                    return 6
+                elif self.GGA_fix == 5:  # RTK-float
+                    return 5
+                else:  # hunh?
+                    return 1
+            else:
+                return 1
+        else:
+            return 0
 
 
-    def parse_nmea_packet(self, pkt):
-        if pkt.startswith(b'$GPRMC'):
-            self.parse_RMC(pkt)
-        elif pkt.startswith(b'$GNRMC'):
-            self.parse_RMC(pkt)
-        elif pkt.startswith(b'$GNGLL'):
-            self.parse_GLL(pkt)
+    def parse_packet(self, pkt):
+        if pkt.startswith(b'$G'):
+            if pkt[3:6] == b'RMC':
+                self.parse_RMC(pkt)
+            elif pkt[3:6] == b'GGA':
+                self.parse_GGA(pkt)
+            elif pkt[3:6] == b'GSA':
+                self.parse_GSA(pkt)
+            #elif pkt[3:6] == b'GLL':
+            #    self.parse_GLL(pkt)
+
 
     def parse_GLL(self, pkt):
+        '''Geographic Latitude and Longitude.  Obsolete, do not use.'''
         pass
 
 
-    def parse_RMC(self, pkt):
-        #print('parsing RMC...')
+    def parse_GGA(self, pkt):
+        '''essential fix data'''
+
+        #print('parse_GGA:', pkt)
         pieces = pkt.split(b',')
-        ## From the NMEA protocol:
-        # pieces[0] -> "$GPRMC"
+        # pieces[0] -> "$??GGA"
         # pieces[1] -> time-of-day timestamp
-        # pieces[2] -> "A" for okay, or "V" for warning
+        # pieces[2] -> latitude
+        # pieces[3] -> lat hemisphere, "N" or "S"
+        # pieces[4] -> longitude
+        # pieces[5] -> lon hemisphere, "E" or "W"
+        # pieces[6] -> fix quality (0: none, 1: GPS, 2: DGPS, 4: RTK-fix, 5: RTK-float, 7: Manual, 8: Simulation)
+        try:
+            self.GGA_fix = int(pieces[6], 10)
+        except:
+            self.GGA_fix = None
+        # pieces[7] -> number of satellites being tracked
+        # pieces[8] -> HDoP
+        # pieces[9] -> altitude, above mean sea leveal
+        # pieces[10] -> units for ALT-MSL (usually "M" for meters)
+        # pieces[11] -> height of geoid (mean sea level) above WGS84 ellipsiod
+        # pieces[12] -> units for geoid height (usually "M" for meters)
+        # pieces[13] -> empty?   (seconds since last DGPS update?...)
+        # pieces[14] -> empty?   (DGPS station ID number?...)
+
+
+    def parse_GSA(self, pkt):
+        '''DOP and active satellites'''
+
+        #print('parse_GSA:', pkt)
+        pieces = pkt.split(b',')
+        # pieces[0] -> "$??GSA"
+        # pieces[1] -> how to select fix "A" for auto, "M" for manual
+        # pieces[2] -> fix type: 1: no fix, 2: 2D fix, 3: 3D fix
+        try:
+            self.GSA_fix = int(pieces[2], 10)
+        except:
+            self.GSA_fix = -1
+        # pieces[3:-3] -> PRNs of satellites
+        # pieces[-3] -> PDoP (Dilution of Precision)
+        # pieces[-2] -> HDoP
+        # pieces[-1] -> VDoP
+        # literal '*'
+        # checksum
+
+
+    def parse_GSV(self, pkt):
+        '''Satellites in view'''
+
+        #print('parse_GSV:', pkt)
+        pieces = pkt.split(b',')
+        # pieces[0] -> "$??GSV"
+        # pieces[1] -> number of sentences
+        # pieces[2] -> current sentence number
+        # pieces[3]
+        ## 4 values per satellite:
+        # pieces[4*i + 4] -> PRN number
+        # pieces[4*i + 5] -> Elevation, degrees
+        # pieces[4*i + 6] -> Azimuth, degrees
+        # pieces[4*i + 7] -> SNR, higher is better, range 0 to 99
+        # a literal '*'
+        #  -> checksum
+
+
+    def parse_RMC(self, pkt):
+        '''Recommended Minimum'''
+
+        #print('parse_RMC:', pkt)
+        pieces = pkt.split(b',')
+        # pieces[0] -> "$??RMC"
+        # pieces[1] -> time-of-day timestamp
+        # pieces[2] -> status:  "A" for active, or "V" for void
         # pieces[3] -> latitude
         # pieces[4] -> lat hemisphere, "N" or "S"
         # pieces[5] -> longitude
@@ -71,18 +187,18 @@ class NmeaParser:
         # pieces[11] -> east/west
         # pieces[12] -> checksum
         if pieces[2] == b'A':
-            self.gpsFix = 3
+            self.RMC_status = True
         else:
-            self.gpsFix = 0
+            self.RMC_status = None
             return
 
         pyTime = datetime.datetime.strptime(
                 pieces[1].decode() + ' ' + pieces[9].decode(), '%H%M%S.%f %d%m%y')
         pyTime = pyTime.replace(tzinfo=pytz.UTC)
         #print(pyTime.timestamp() - time.time())
-        ts = pyTime.timestamp()
+        self.ts = pyTime.timestamp()
 
-        self.ts_us = int(round(ts*1e6))
+        self.ts_us = int(round(self.ts*1e6))
         self.lat = convertLatLon(pieces[3], pieces[4])
         self.lon = convertLatLon(pieces[5], pieces[6])
         try:

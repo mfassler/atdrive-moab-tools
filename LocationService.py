@@ -129,11 +129,11 @@ while True:
         elif oneInput == gps_sock_nmea:
             pkt, addr = gps_sock_nmea.recvfrom(1500)
             try:
-                nmea.parse_nmea_packet(pkt)
+                nmea.parse_packet(pkt)
             except Exception as ee:
                 print('failed to parse nmea packet:', ee)
             else:
-                if nmea.gpsFix == 3:
+                if nmea.RMC_status:
                     est_lat = nmea.lat
                     est_lon = nmea.lon
                     if nmea.true_course is not None:
@@ -141,7 +141,11 @@ while True:
                         if np.abs(imu.sbus_a - 1024) < 20 and imu.sbus_b > 1030:
                             calcHeading.calibrate_from_gps(nmea.true_course)
 
-                    mavlink.send_raw_gps(nmea.ts_us, nmea.gpsFix, nmea.lat, nmea.lon, nmea.alt, 5)
+                    mav_gps_fix_type = nmea.get_mavlink_fix()
+                    number_of_satellites = 5  # <--- TODO: FIXME
+
+                    mavlink.send_raw_gps(nmea.ts_us, mav_gps_fix_type, nmea.lat, nmea.lon, nmea.alt, 
+                        nmea.speed, number_of_satellites)
                     mavlink.send_gps(est_lat, est_lon, nmea.alt)
 
         elif oneInput == imu_sock:
