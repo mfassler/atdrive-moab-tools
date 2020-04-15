@@ -10,6 +10,10 @@ Nav_Recipients = [
 
 SHAFT_ENCODER_DISTANCE = 0.09  # 9 cm per tick
 
+
+STARTING_LAT = 0.0
+STARTING_LON = 0.0
+
 compass_x_range = 235 / 2.0
 compass_y_range = 235 / 2.0
 compass_z_range = 235 / 2.0

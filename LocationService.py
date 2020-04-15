@@ -84,9 +84,17 @@ nav_sock.bind(("0.0.0.0", 0))
 
 
 est_speed = 0.0
-est_lat = None
-est_lon = None
-est_heading = None
+try:
+    est_lat = config.STARTING_LAT
+except:
+    est_lat = None
+
+try:
+    est_lon = config.STARTING_LON
+except:
+    est_lon = None
+
+est_heading = 0.0
 
 last_moab_mode = -1
 
