@@ -60,8 +60,9 @@ class NmeaParser:
         #   1: GPS connected, but no fix
         #   2: 2D fix
         #   3: 3D fix
-        #   4: DGPS / SBAS
-        #   5: RTK float
+        #   4: DGPS / SBAS  (called "3D+DGPS" in apm-planner2)
+        #   5: RTK float    (5 is "3D+RTK" in APM planner 2)
+        #     ... anything higher than 5 is just "." in APM Planner2
         #   6: RTK fix
         #   7: static fix (base station)
         #   8: PPP, 3D position
@@ -76,9 +77,9 @@ class NmeaParser:
                 elif self.GGA_fix == 2: # DGPS
                     return 4
                 elif self.GGA_fix == 4: # RTK-fix
-                    return 6
+                    return 5  # APM_Planner2 will call this "3D+RTK"
                 elif self.GGA_fix == 5:  # RTK-float
-                    return 5
+                    return 4  # APM_Planner2 will call this "3D+DGPS"
                 else:  # hunh?
                     return 1
             else:
