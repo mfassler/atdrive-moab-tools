@@ -160,6 +160,12 @@ class MavlinkHandler:
         print('... mission request:', seq)
         self._sock.sendto(msgBuf, (self._remote_addr, self._remote_port))
 
+    def mission_request_int(self, seq):
+        msg = mavlink1.MAVLink_mission_request_int_message(0, 0, seq)
+        msgBuf = msg.pack(self._mav)
+        print('... mission request:', seq)
+        self._sock.sendto(msgBuf, (self._remote_addr, self._remote_port))
+
 
     def do_message(self, oneMsg):
         if oneMsg.name == 'MISSION_COUNT':
@@ -170,7 +176,7 @@ class MavlinkHandler:
             self._mission_items = [None] * self._mission_count
             self._mission_items_int = [None] * self._mission_count
             for i in range(self._mission_count):
-                self.mission_request(i)
+                self.mission_request_int(i)
         elif oneMsg.name == 'MISSION_ITEM':
             print(oneMsg.name)
             #self.send_text_message(b"hi there")
@@ -187,16 +193,20 @@ class MavlinkHandler:
                     allSomething = False
                     #print("missing a waypoint!")
             if allSomething:
-                f = open('/home/fassler/CURRENT_MISSION.txt', 'wb')
-                print("\n\n  THE MISSION:")
-                for i in range(len(self._mission_items)):
-                    print(self._mission_items[i]['x'], self._mission_items[i]['y'])
-                    f.write(b"%f, %f\n" % (self._mission_items[i]['x'], self._mission_items[i]['y']))
+                print("received complete mission")
+                f = open('CURRENT_MISSION.txt', 'wb')
+                f.write(b'QGC WPL 110\n')
+                for oneItem in self._mission_items:
+                    outStr1 = b"%d\t%d\t%d\t%d\t%g\t%g\t%g\t%g\t" % (oneItem['seq'], oneItem['current'],
+                        oneItem['frame'], oneItem['command'], oneItem['param1'], oneItem['param2'],
+                        oneItem['param3'], oneItem['param4'])
+                    outStr2 = b"%f\t%f\t%g\t%d" % (oneItem['x'], oneItem['y'], oneItem['z'], oneItem['autocontinue'])
+                    f.write(outStr1 + outStr2 + b'\n')
                 print("\n")
                 f.close()
-                f.flush()
                 sys.stdout.flush()
                 self.send_text_message(b"Wrote Mission")
+
         elif oneMsg.name == 'MISSION_ITEM_INT':
             print(oneMsg.name)
             item = oneMsg.to_dict()
