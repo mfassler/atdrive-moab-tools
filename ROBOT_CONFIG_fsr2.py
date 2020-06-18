@@ -36,3 +36,15 @@ lidar_ref_angle = 45.0
 lidar_ref_lat = 35.6535
 lidar_ref_lon = 139.837
 
+
+# The Moab can be mounted with any orientation, but you will
+# have to provide the rotation matrix:
+
+# Moab is mounted with "forward" pointing "left"
+#   (ie:  ethernet cable is pointing "right")
+IMU_XFRM = [
+    [ 0, 1, 0],
+    [-1, 0, 0],
+    [ 0, 0, 1]
+]
+

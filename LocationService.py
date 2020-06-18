@@ -34,6 +34,13 @@ except:
     import ROBOT_CONFIG_default as config
 
 
+IMU_XFRM = None
+if hasattr(config, 'IMU_XFRM'):
+    # The Moab can be mounted in any orientation, but the
+    # user will have to provide the 3x3 rotation matrix:
+    IMU_XFRM = np.array(config.IMU_XFRM)
+
+
 mavlink = MavlinkHandler(config.MAVLINK_IP_ADDRESS)
 
 #ublox = UbloxParser(mavlink)
@@ -157,21 +164,8 @@ while True:
             else:
                 rot = transforms3d.quaternions.quat2mat([imu.qw, imu.qx, imu.qy, imu.qz])
 
-
-                ##################################################
-                # Coordinate change based on IMU mounting position
-                ##################################################
-
-                ## Mounted upside-down:
-                #xfrm = np.array([[-1, 0, 0],
-                #                 [0, 1, 0],
-                #                 [0, 0, -1]])
-
-                ## Mounted sideways (and yaw will be negative):
-                #xfrm = np.array([[, -1, 0],
-                #                 [1, 0, 0],
-                #                 [0, 0, -1]])
-                #rot = np.dot(xfrm, rot)
+                if IMU_XFRM is not None:
+                    rot = np.dot(rot, IMU_XFRM)
 
                 pitch, roll, _yaw = transforms3d.euler.mat2euler(rot)
 
