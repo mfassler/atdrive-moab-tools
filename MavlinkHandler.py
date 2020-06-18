@@ -263,6 +263,73 @@ class MavlinkHandler:
                 (b'MODE2', 11.0, 2),
                 (b'INITIAL_MODE', 0.0, 2),
                 (b'myStuff', 11, 2),
+
+
+                # QGroundControl expects these to be here:
+                (b'RCMAP_THROTTLE', 3, 6),
+                (b'RCMAP_YAW', 1, 6),
+                (b'RCMAP_PITCH', 4, 6),
+                (b'RCMAP_ROLL', 2, 6),
+                (b'FLTMODE6', 6, 2),
+                (b'FLTMODE5', 5, 2),
+                (b'FLTMODE4', 4, 2),
+                (b'FLTMODE3', 3, 2),
+                (b'FLTMODE2', 2, 2),
+                (b'FLTMODE1', 1, 2),
+
+                (b'AHRS_ORIENTATION', 1, 6),
+
+                (b'COMPASS_PRIMARY', 1, 6),
+                (b'COMPASS_DEV_ID', 1, 6),
+                (b'COMPASS_DEV_ID2', 2, 6),
+                (b'COMPASS_DEV_ID3', 3, 6),
+                (b'COMPASS_USE', 1, 6),
+                (b'COMPASS_USE2', 1, 6),
+                (b'COMPASS_USE3', 0, 6),
+                (b"COMPASS_OFS_X", 123, 6),
+                (b"COMPASS_OFS_Y", -4, 6),
+                (b"COMPASS_OFS_Z", 41, 6),
+                (b"COMPASS_OFS2_X", 11, 6),
+                (b"COMPASS_OFS2_Y", 12, 6),
+                (b"COMPASS_OFS2_Z", 13, 6),
+                (b"COMPASS_OFS3_X", 14, 6),
+                (b"COMPASS_OFS3_Y", 15, 6),
+                (b"COMPASS_OFS3_Z", 16, 6),
+
+                (b"BATT_MONITOR" ,0 ,0),
+                (b"BATT_MONITOR" ,0 ,0),
+                (b"ARMING_CHECK" ,0 ,0),
+                (b"MNT_RC_IN_ROLL" ,0 ,0),
+                (b"MNT_RC_IN_PAN" ,0 ,0),
+                (b"MNT_RC_IN_TILT" ,0 ,0),
+
+                (b'RC0_MIN', 300, 6),
+                (b'RC0_MAX', 1700, 6),
+                (b'RC0_TRIM', 0, 6),
+
+                (b'RC1_MIN', 300, 6),
+                (b'RC1_MAX', 1700, 6),
+                (b'RC1_TRIM', 0, 6),
+
+                (b'RC2_MIN', 300, 6),
+                (b'RC2_MAX', 1700, 6),
+                (b'RC2_TRIM', 0, 6),
+
+                (b'RC3_MIN', 300, 6),
+                (b'RC3_MAX', 1700, 6),
+                (b'RC3_TRIM', 0, 6),
+
+                (b'RC4_MIN', 300, 6),
+                (b'RC4_MAX', 1700, 6),
+                (b'RC4_TRIM', 0, 6),
+
+
+                (b'INS_ACCOFFS_X', 34, 6),
+                (b'INS_ACCOFFS_Y', 13, 6),
+                (b'INS_ACCOFFS_Z', -4, 6),
+
+                (b'ARMING_CHECK', 0, 6),
+
             ]
             #total = 664 # len(PARAMS)
             total = len(PARAMS)
@@ -274,6 +341,15 @@ class MavlinkHandler:
             #msgBuf = b'\xfe\x19\x87\x01\x01\x16\x00\x00\x80@\x98\x02\x1d\x00MODE1\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02d"'
             #self._sock.sendto(msgBuf, (self._remote_addr, self._remote_port))
 
+        elif oneMsg.name == 'COMMAND_LONG':
+            print(' *********************')
+            print(' *********************')
+            print(' *******   COMMAND: ', oneMsg.command)
+            print(' *********************')
+            self._A_command = oneMsg
+            msg = mavlink1.MAVLink_command_ack_message(oneMsg.command, 0)
+            msgBuf = msg.pack(self._mav)
+            self._sock.sendto(msgBuf, (self._remote_addr, self._remote_port))
         elif oneMsg.name == 'PARAM_REQUEST_READ':
             print(oneMsg.name)
             self._aMsg = oneMsg
