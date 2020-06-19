@@ -163,7 +163,7 @@ class MavlinkHandler:
     def mission_request_int(self, seq):
         msg = mavlink1.MAVLink_mission_request_int_message(0, 0, seq)
         msgBuf = msg.pack(self._mav)
-        print('... mission request:', seq)
+        print('... mission request_int:', seq)
         self._sock.sendto(msgBuf, (self._remote_addr, self._remote_port))
 
 
@@ -171,28 +171,31 @@ class MavlinkHandler:
         if oneMsg.name == 'MISSION_COUNT':
             the_msg = oneMsg.to_dict()
             self._mission_count = the_msg['count']
-            #mavlink.mission_request_list()
             print("\n ---- %s: %d" % (oneMsg.name, self._mission_count))
             self._mission_items = [None] * self._mission_count
             self._mission_items_int = [None] * self._mission_count
             for i in range(self._mission_count):
                 self.mission_request_int(i)
+                self.mission_request(i)
+
+
         elif oneMsg.name == 'MISSION_ITEM':
             print(oneMsg.name)
-            #self.send_text_message(b"hi there")
-            #return
             item = oneMsg.to_dict()
             self._a_mission_item = item
-            if item['param2'] < 0.01:
-                print("Guided Mode")
-                return
+            #if item['param2'] < 0.01:
+            #    print("Guided Mode")
+            #    return
             self._mission_items[item['seq']] = item
-            allSomething = True
+
+            # Do we have a complete mission?
+            rx_all_mission_items = True
             for oneItem in self._mission_items:
                 if oneItem is None:
-                    allSomething = False
+                    rx_all_mission_items = False
                     #print("missing a waypoint!")
-            if allSomething:
+
+            if rx_all_mission_items:
                 print("received complete mission")
                 f = open('CURRENT_MISSION.txt', 'wb')
                 f.write(b'QGC WPL 110\n')
@@ -202,10 +205,17 @@ class MavlinkHandler:
                         oneItem['param3'], oneItem['param4'])
                     outStr2 = b"%f\t%f\t%g\t%d" % (oneItem['x'], oneItem['y'], oneItem['z'], oneItem['autocontinue'])
                     f.write(outStr1 + outStr2 + b'\n')
-                print("\n")
                 f.close()
+
+                print("\n")
                 sys.stdout.flush()
-                self.send_text_message(b"Wrote Mission")
+
+                # Notify GCS that we received the mission
+                #self.send_text_message(b"Wrote Mission")
+                msg = mavlink1.MAVLink_mission_ack_message(0, 0, 0)
+                msgBuf = msg.pack(self._mav)
+                self._sock.sendto(msgBuf, (self._remote_addr, self._remote_port))
+
 
         elif oneMsg.name == 'MISSION_ITEM_INT':
             print(oneMsg.name)
@@ -215,13 +225,16 @@ class MavlinkHandler:
             #    print("Guided Mode")
             #    return
             self._mission_items_int[item['seq']] = item
-            allSomething = True
+
+            # Do we have a complete mission_int?
+            rx_all_mission_items = True
             for oneItem in self._mission_items_int:
                 if oneItem is None:
-                    allSomething = False
+                    rx_all_mission_items = False
                     #print("missing a waypoint!")
-            if allSomething:
-                print("received complete mission")
+
+            if rx_all_mission_items:
+                print("received complete mission_int")
                 f = open('CURRENT_MISSION_int.txt', 'wb')
                 f.write(b'QGC WPL 110\n')
                 for oneItem in self._mission_items_int:
@@ -231,6 +244,16 @@ class MavlinkHandler:
                     outStr2 = b"%.7f\t%.7f\t%g\t%d" % (oneItem['x'] / 10000000.0, oneItem['y'] / 10000000.0, oneItem['z'], oneItem['autocontinue'])
                     f.write(outStr1 + outStr2 + b'\n')
                 f.close()
+
+                print("\n")
+                sys.stdout.flush()
+
+                # Notify GCS that we received the mission_int
+                #self.send_text_message(b"Wrote Mission_Int")
+                msg = mavlink1.MAVLink_mission_ack_message(0, 0, 0)
+                msgBuf = msg.pack(self._mav)
+                self._sock.sendto(msgBuf, (self._remote_addr, self._remote_port))
+
 
         elif oneMsg.name == 'PARAM_REQUEST_LIST':
             print(oneMsg.name)
