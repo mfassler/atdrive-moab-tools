@@ -24,7 +24,7 @@ gps_sock_nmea.bind(("0.0.0.0", NMEA_RX_PORT))
 while True:
     pkt, addr = gps_sock_nmea.recvfrom(1500)
     try:
-        nmea.parse_nmea_packet(pkt)
+        nmea.parse_packet(pkt)
     except Exception as ee:
         print('failed to parse nmea packet:', ee)
     else:
