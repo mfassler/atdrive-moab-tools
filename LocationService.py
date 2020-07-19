@@ -68,10 +68,15 @@ lidar_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 lidar_sock.bind(("0.0.0.0", LIDAR_NAV_RX_PORT))
 
 SBUS_PORT = 31338
+sbus_sock = None
 #sbus_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 #sbus_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
 #sbus_sock.bind(("0.0.0.0", SBUS_PORT))
 
+GCS_MESSAGES_PORT = 31339
+gcs_msgs_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+gcs_msgs_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+gcs_msgs_sock.bind(("127.0.0.1", GCS_MESSAGES_PORT))
 
 ## We will send lat, lon, heading, and speed to the Autopilot program
 nav_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -111,7 +116,7 @@ def parse_lidar_nav_packet(udpPacket):
 
 
 #allSockets = [gps_sock_nmea, imu_sock, lidar_sock, mavlink._sock, sbus_sock]
-allSockets = [gps_sock_nmea, imu_sock, lidar_sock, mavlink._sock]
+allSockets = [gps_sock_nmea, imu_sock, lidar_sock, mavlink._sock, gcs_msgs_sock]
 while True:
     inputs, outputs, errors = select.select(allSockets, [], [], 0.2)
     for oneInput in inputs:
@@ -229,6 +234,12 @@ while True:
                     else:
                         print("BUG: unknown flight mode")
 
+        elif oneInput == gcs_msgs_sock:
+            pkt, addr = get_last_packet(gcs_msgs_sock, 100)
+            try:
+                mavlink.send_text_message(pkt)
+            except Exception as ee:
+                print('failed to mavlink.send_text_message():', ee)
 
 
     #shaft.update_speed_estimate()
