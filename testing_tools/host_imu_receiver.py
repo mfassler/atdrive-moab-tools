@@ -17,6 +17,7 @@ imu = ImuPacket()
 
 BNO055_RX_PORT = 27114
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
 sock.bind(("0.0.0.0", BNO055_RX_PORT))
 
 
