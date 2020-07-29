@@ -88,6 +88,7 @@ est_lat = None
 est_lon = None
 est_heading = None
 
+last_moab_mode = -1
 
 ref_angle = np.radians(config.lidar_ref_angle)
 rot_matrix = np.array([[ np.cos(ref_angle), np.sin(ref_angle)],
@@ -191,23 +192,22 @@ while True:
                 # 3 - auto_pilot
                 # 4 - stop with throttle neutral
 
-                # Map to mavlink modes:
-                if imu.moab_mode == 0:
-                    mavlink.custom_mode = 4 # stop
-                    mavlink.heartbeat(force=True)
-                elif imu.moab_mode == 1:
-                    mavlink.custom_mode = 4 # stop
-                    mavlink.heartbeat(force=True)
-                elif imu.moab_mode == 2:
-                    mavlink.custom_mode = 0 # manual
-                    mavlink.heartbeat(force=True)
-                elif imu.moab_mode == 3:
-                    mavlink.custom_mode = 10 # auto
-                    mavlink.heartbeat(force=True)
-                elif imu.moab_mode == 4:
-                    mavlink.custom_mode = 4 # stop
+                if last_moab_mode != imu.moab_mode:
+                    # Map to mavlink modes:
+                    if imu.moab_mode == 0:
+                        mavlink.custom_mode = 4 # stop
+                    elif imu.moab_mode == 1:
+                        mavlink.custom_mode = 4 # stop
+                    elif imu.moab_mode == 2:
+                        mavlink.custom_mode = 0 # manual
+                    elif imu.moab_mode == 3:
+                        mavlink.custom_mode = 10 # auto
+                    elif imu.moab_mode == 4:
+                        mavlink.custom_mode = 4 # stop
+
                     mavlink.heartbeat(force=True)
 
+                    last_moab_mode = imu.moab_mode
 
 
         elif oneInput == mavlink._sock:
