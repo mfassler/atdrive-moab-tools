@@ -184,6 +184,31 @@ while True:
                 shaft_pps = imu.shaft_pps
                 est_speed = shaft_pps * config.SHAFT_ENCODER_DISTANCE
 
+                # Moab modes:
+                # 0 - no signal from transmitter (radio timeout)
+                # 1 - stop with brakes on
+                # 2 - manual
+                # 3 - auto_pilot
+                # 4 - stop with throttle neutral
+
+                # Map to mavlink modes:
+                if imu.moab_mode == 0:
+                    mavlink.custom_mode = 4 # stop
+                    mavlink.heartbeat(force=True)
+                elif imu.moab_mode == 1:
+                    mavlink.custom_mode = 4 # stop
+                    mavlink.heartbeat(force=True)
+                elif imu.moab_mode == 2:
+                    mavlink.custom_mode = 0 # manual
+                    mavlink.heartbeat(force=True)
+                elif imu.moab_mode == 3:
+                    mavlink.custom_mode = 10 # auto
+                    mavlink.heartbeat(force=True)
+                elif imu.moab_mode == 4:
+                    mavlink.custom_mode = 4 # stop
+                    mavlink.heartbeat(force=True)
+
+
 
         elif oneInput == mavlink._sock:
             pkt, addr = mavlink._sock.recvfrom(512)

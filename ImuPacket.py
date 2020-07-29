@@ -26,7 +26,8 @@ this is the packet structure in C:
         // 64 bits:
         uint16_t sbus_a;
         uint16_t sbus_b;
-        uint16_t _padding3;  // 64-bit boundary
+        uint8_t moab_mode
+        uint8_t _padding3;  // 64-bit boundary
         uint16_t _padding4;  // 64-bit boundary
 
         // Everything ABOVE here is the official, "version 1" of this protocol
@@ -46,6 +47,7 @@ class ImuPacket:
         self.shaft_pps = 0
         self.shaft_a_pps = 0
         self.shaft_b_pps = 0
+        self.moab_mode = -1
 
     def parse(self, pkt):
         version, = struct.unpack('<h', pkt[:2])
@@ -57,8 +59,8 @@ class ImuPacket:
                 self.imu_temp, self.calib_stat, \
                 self._padding2, \
                 self.temperature, self.pressure, \
-                self.sbus_a, self.sbus_b, self._padding3, self._padding4 \
-                    = struct.unpack('<hhhhhhhhhhhhhhbBhffHHhh', pkt[:48])
+                self.sbus_a, self.sbus_b, self.moab_mode, self._padding3, self._padding4 \
+                    = struct.unpack('<hhhhhhhhhhhhhhbBhffHHBBh', pkt[:48])
 
             self._extra = pkt[48:]
             if len(self._extra) == 8:
