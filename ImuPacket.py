@@ -8,7 +8,7 @@ this is the packet structure in C:
     struct multi_data {
 
         // 64 bits:
-        int16_t version;
+        uint16_t version;
         int16_t compass_XYZ[3];  // external compass
 
         // 3 * 64 bits:
@@ -26,7 +26,7 @@ this is the packet structure in C:
         // 64 bits:
         uint16_t sbus_a;
         uint16_t sbus_b;
-        uint8_t moab_mode
+        uint8_t moab_mode;
         uint8_t _padding3;  // 64-bit boundary
         uint16_t _padding4;  // 64-bit boundary
 
@@ -60,7 +60,7 @@ class ImuPacket:
                 self._padding2, \
                 self.temperature, self.pressure, \
                 self.sbus_a, self.sbus_b, self.moab_mode, self._padding3, self._padding4 \
-                    = struct.unpack('<hhhhhhhhhhhhhhbBhffHHBBh', pkt[:48])
+                    = struct.unpack('<HhhhhhhhhhhhhhbBhffHHBBh', pkt[:48])
 
             self._extra = pkt[48:]
             if len(self._extra) == 8:
