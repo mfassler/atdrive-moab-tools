@@ -163,10 +163,9 @@ while True:
                             calcHeading.calibrate_from_gps(nmea.true_course)
 
                     mav_gps_fix_type = nmea.get_mavlink_fix()
-                    number_of_satellites = 5  # <--- TODO: FIXME
 
                     mavlink.send_raw_gps(nmea.ts_us, mav_gps_fix_type, nmea.lat, nmea.lon, nmea.alt, 
-                        nmea.speed, number_of_satellites)
+                        nmea.speed, nmea.GGA_numsats)
                     mavlink.send_gps(est_lat, est_lon, nmea.alt)
 
         elif oneInput == imu_sock:

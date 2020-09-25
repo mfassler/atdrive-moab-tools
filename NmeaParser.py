@@ -44,6 +44,7 @@ class NmeaParser:
         self.GGA_fix = 0
         # NMEA-GGA fix is this:
         #   0: none, 1: GPS, 2: DGPS, 4: RTK-fix, 5: RTK-float, 7: Manual, 8: Simulation
+        self.GGA_numsats = 0
 
         self.GSA_fix = 0
         # NMEA-GSA fix is this:
@@ -122,6 +123,10 @@ class NmeaParser:
         except:
             self.GGA_fix = None
         # pieces[7] -> number of satellites being tracked
+        try:
+            self.GGA_numsats = int(pieces[7], 10)
+        except:
+            self.GGA_numsats = 0
         # pieces[8] -> HDoP
         # pieces[9] -> altitude, above mean sea leveal
         # pieces[10] -> units for ALT-MSL (usually "M" for meters)
