@@ -64,7 +64,7 @@ class ImuPacket:
                 self._padding2, \
                 self.temperature, self.pressure, \
                 self.sbus_a, self.sbus_b, self.moab_mode, self._padding3, self.adc0 \
-                    = struct.unpack('<HhhhhhhhhhhhhhbBhffHHBBh', pkt[:48])
+                    = struct.unpack('<HhhhhhhhhhhhhhbBhffHHBBH', pkt[:48])
 
             self._extra = pkt[48:]
             if len(self._extra) == 8:
