@@ -35,6 +35,7 @@ class MavlinkHandler:
         self._last_attitude_time = time.time()
         self._last_gps_time = time.time()
         self._last_vfr_hud_time = time.time()
+        self._last_status_time = time.time()
         self._heading = 0
         self._mission_count = 0
         self._mission_items = []
@@ -131,6 +132,19 @@ class MavlinkHandler:
         )
         msgBuf = msg.pack(self._mav)
         self._sock.sendto(msgBuf, (self._remote_addr, self._remote_port))
+
+    def send_status(self, voltage):
+        self.heartbeat()
+        if (time.time() - self._last_status_time) > 0.5:
+            self._last_status_time = time.time()
+
+            mV_uint16 = round(int(voltage * 1000))
+
+            msg = mavlink1.MAVLink_sys_status_message(
+                0, 0, 0, 0, mV_uint16, 0,0,0,0,0,0,0,0
+            )
+            msgBuf = msg.pack(self._mav)
+            self._sock.sendto(msgBuf, (self._remote_addr, self._remote_port))
 
     #def send_vfr_hud(self, airspeed, groundspeed, heading, throttle, alt, climb):
     def send_vfr_hud(self, groundspeed):

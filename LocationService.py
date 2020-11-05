@@ -41,6 +41,10 @@ if hasattr(config, 'IMU_XFRM'):
     IMU_XFRM = np.array(config.IMU_XFRM)
 
 
+ADC0_SCALE = 1.0
+if hasattr(config, 'ADC0_SCALE'):
+    ADC0_SCALE = config.ADC0_SCALE
+
 mavlink = MavlinkHandler(config.MAVLINK_IP_ADDRESS)
 
 #ublox = UbloxParser(mavlink)
@@ -188,6 +192,9 @@ while True:
                 est_heading = calcHeading.est_heading_degrees
                 mavlink.send_attitude(roll, pitch, calcHeading.est_heading_radians)
 
+                adc0_voltage = imu.adc0 * (3.3 / 65535.0) * ADC0_SCALE
+                mavlink.send_status(adc0_voltage)
+
                 #shaft_pps = (imu.shaft_a_pps + imu.shaft_b_pps) * 0.5
                 shaft_pps = imu.shaft_pps
                 est_speed = shaft_pps * config.SHAFT_ENCODER_DISTANCE
@@ -215,6 +222,7 @@ while True:
                     mavlink.heartbeat(force=True)
 
                     last_moab_mode = imu.moab_mode
+
 
 
         elif oneInput == mavlink._sock:

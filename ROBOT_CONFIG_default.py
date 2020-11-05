@@ -10,6 +10,7 @@ Nav_Recipients = [
 
 SHAFT_ENCODER_DISTANCE = 0.09  # 9 cm per tick
 
+ADC0_SCALE = 3.0
 
 STARTING_LAT = 0.0
 STARTING_LON = 0.0
