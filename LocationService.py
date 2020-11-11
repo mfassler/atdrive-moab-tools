@@ -196,7 +196,14 @@ while True:
                 mavlink.send_status(adc0_voltage)
 
                 #shaft_pps = (imu.shaft_a_pps + imu.shaft_b_pps) * 0.5
-                shaft_pps = imu.shaft_pps
+                if imu.shaft_a_pps > 2*imu.shaft_b_pps:
+                    shaft_pps = imu.shaft_a_pps
+                    mavlink.send_text_message(b'BAD SHAFT ENCODER')
+                elif imu.shaft_b_pps > 2*imu.shaft_a_pps:
+                    shaft_pps = imu.shaft_b_pps
+                    mavlink.send_text_message(b'BAD SHAFT ENCODER')
+                else:
+                    shaft_pps = imu.shaft_pps
                 est_speed = shaft_pps * config.SHAFT_ENCODER_DISTANCE
 
                 # Moab modes:
