@@ -35,6 +35,12 @@ sbus_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sbus_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
 sbus_sock.bind(("0.0.0.0", SBUS_RX_PORT))
 
+RADIO169_PORT = 31340
+r169_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+r169_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+r169_sock.bind(("0.0.0.0", RADIO169_PORT))
+
+
 BUTTON_PORT = 31345
 button_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 button_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
@@ -49,7 +55,11 @@ fa_sock.bind(('0.0.0.0', FOLLOW_AVOID_PORT))
 
 f = open(sys.argv[1], 'wb')
 
-all_sockets = [nmea_sock, imu_sock, pid_sock, moab_status_sock, sbus_sock, button_sock, fa_sock]
+all_sockets = [
+    nmea_sock, imu_sock, pid_sock, moab_status_sock, 
+    sbus_sock, r169_sock, button_sock, fa_sock
+]
+
 while True:
     inputs, outputs, errors = select.select(all_sockets, [], [])
     for oneInput in inputs:
@@ -69,6 +79,10 @@ while True:
             pkt, addr = moab_status_sock.recvfrom(1500)
             pickle.dump(('moab', time.time(), addr, pkt), f, -1)
             print('moab', len(pkt))
+        elif oneInput == r169_sock:
+            pkt, addr = r169_sock.recvfrom(1500)
+            pickle.dump(('r169', time.time(), addr, pkt), f, -1)
+            print('r169', len(pkt))
         elif oneInput == sbus_sock:
             pkt, addr = sbus_sock.recvfrom(1500)
             pickle.dump(('sbus', time.time(), addr, pkt), f, -1)
