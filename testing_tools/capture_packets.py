@@ -35,10 +35,21 @@ sbus_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sbus_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
 sbus_sock.bind(("0.0.0.0", SBUS_RX_PORT))
 
+BUTTON_PORT = 31345
+button_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+button_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+button_sock.bind(("0.0.0.0", BUTTON_PORT))
+
+#FOLLOW_AVOID_PORT = 52535
+FOLLOW_AVOID_PORT = 52537
+fa_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+fa_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+fa_sock.bind(('0.0.0.0', FOLLOW_AVOID_PORT))
+
 
 f = open(sys.argv[1], 'wb')
 
-all_sockets = [nmea_sock, imu_sock, pid_sock, moab_status_sock, sbus_sock]
+all_sockets = [nmea_sock, imu_sock, pid_sock, moab_status_sock, sbus_sock, button_sock, fa_sock]
 while True:
     inputs, outputs, errors = select.select(all_sockets, [], [])
     for oneInput in inputs:
@@ -62,6 +73,14 @@ while True:
             pkt, addr = sbus_sock.recvfrom(1500)
             pickle.dump(('sbus', time.time(), addr, pkt), f, -1)
             print('sbus', len(pkt))
+        elif oneInput == button_sock:
+            pkt, addr = button_sock.recvfrom(1500)
+            pickle.dump(('button', time.time(), addr, pkt), f, -1)
+            print('button', len(pkt))
+        elif oneInput == fa_sock:
+            pkt, addr = fa_sock.recvfrom(1500)
+            pickle.dump(('folAvoid', time.time(), addr, pkt), f, -1)
+            print('folAvoid', len(pkt))
 
 
 
