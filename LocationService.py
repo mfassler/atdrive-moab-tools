@@ -18,7 +18,7 @@ from ShaftEncoder import ShaftEncoder
 from CalcHeading import CalcHeading
 from SbusParser import SbusParser, Flight_Mode
 
-from ImuPacket import ImuPacket
+from ImuPacket import ImuPacket, Moab_mode, Rc_Controller_Source
 
 sbus = SbusParser()
 imu = ImuPacket()
@@ -215,16 +215,20 @@ while True:
 
                 if last_moab_mode != imu.moab_mode:
                     # Map to mavlink modes:
-                    if imu.moab_mode == 0:
+                    if imu.moab_mode == Moab_mode.NO_SIGNAL:
                         mavlink.custom_mode = 4 # stop
-                    elif imu.moab_mode == 1:
+                    elif imu.moab_mode == Moab_mode.STOP:
                         mavlink.custom_mode = 4 # stop
-                    elif imu.moab_mode == 2:
+                    elif imu.moab_mode == Moab_mode.MANUAL:
                         mavlink.custom_mode = 0 # manual
-                    elif imu.moab_mode == 3:
+                    elif imu.moab_mode == Moab_mode.AUTO:
                         mavlink.custom_mode = 10 # auto
-                    elif imu.moab_mode == 4:
+                    elif imu.moab_mode == Moab_mode.STOP_NO_BRAKES:
                         mavlink.custom_mode = 4 # stop
+                    elif imu.moab_mode == Moab_mode.AUTO_NO_AUTOPILOT:
+                        mavlink.custom_mode = 10 # else
+                    else:
+                        print('WARN:  unknown mode from moab:', imu.moab_mode)
 
                     mavlink.heartbeat(force=True)
 

@@ -1,5 +1,6 @@
 
 import struct
+from enum import Enum
 
 
 '''
@@ -42,6 +43,24 @@ this is the packet structure in C:
 
 '''
 
+
+class Moab_mode(Enum):
+    NO_SIGNAL = 0
+    STOP = 1
+    MANUAL = 2
+    AUTO = 3
+    STOP_NO_BRAKES = 4  # not used anymore, I don't think
+    AUTO_NO_AUTOPILOT = 5
+
+
+
+class Rc_Controller_Source(Enum):
+    NONE = 0
+    SBUS = 1
+    R169 = 2
+
+
+
 class ImuPacket:
     def __init__(self):
         self.shaft_pps = 0
@@ -63,8 +82,11 @@ class ImuPacket:
                 self.imu_temp, self.calib_stat, \
                 self._padding2, \
                 self.temperature, self.pressure, \
-                self.sbus_a, self.sbus_b, self.moab_mode, self.rc_radio_source, self.adc0 \
+                self.sbus_a, self.sbus_b, _moab_mode_int, _rc_radio_source_int, self.adc0 \
                     = struct.unpack('<HhhhhhhhhhhhhhbBhffHHBBH', pkt[:48])
+
+            self.moab_mode = Moab_mode(_moab_mode_int)
+            self.rc_radio_source = Rc_Controller_Source(_rc_radio_source_int)
 
             self._extra = pkt[48:]
             if len(self._extra) == 8:
