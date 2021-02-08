@@ -4,6 +4,7 @@ import sys
 if sys.version_info[0] < 3:
     raise Exception("Must be using Python 3")
 
+import os
 import pickle
 import struct
 import numpy as np
@@ -26,6 +27,7 @@ pid = PidPacket()
 packets = []
 
 f = open(sys.argv[1], 'rb')
+file_size = os.path.getsize(sys.argv[1])
 
 
 nmea_vals = []
@@ -65,15 +67,23 @@ def parse_obj(obj):
         print("Unknown protocol:", protocol)
 
 
-
+last_good_position = f.tell()
 while True:
     try:
         obj = pickle.load(f)
         #packets.append(obj)
         parse_obj(obj)
-    except EOFError:
+    except EOFError:  # normal, end-of-file behavior
         break
+    except Exception as ee:  # possibly corrupted file
+        print('failed to parse packet:', ee)
+        break
+    else:
+        last_good_position = f.tell()
 
+if last_good_position != file_size:
+    print('GOOD: read %d bytes' % (last_good_position))
+    print('BAD: failed to read %d bytes' % (file_size - last_good_position))
 
 
 imu_data = np.array(imu_vals)
