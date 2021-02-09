@@ -24,7 +24,7 @@ sbus = SbusParser()
 imu = ImuPacket()
 calcHeading = CalcHeading()
 
-from utils import get_new_gps_coords
+from misc_math_utils import get_new_gps_coords
 from misc_utils import get_last_packet
 from MavlinkHandler import MavlinkHandler
 
