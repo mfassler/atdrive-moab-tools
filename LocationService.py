@@ -11,22 +11,24 @@ import struct
 import numpy as np
 import transforms3d
 
+import protocols
+from protocols.SbusParser import Flight_Mode
+from protocols.ImuPacket import Moab_mode, Rc_Controller_Source
 
-from UbloxParser import UbloxParser
-from NmeaParser import NmeaParser
-from ShaftEncoder import ShaftEncoder
-from CalcHeading import CalcHeading
-from SbusParser import SbusParser, Flight_Mode
 
-from ImuPacket import ImuPacket, Moab_mode, Rc_Controller_Source
+sbus = protocols.SbusParser()
+imu = protocols.ImuPacket()
+#ublox = protocols.UbloxParser()
+nmea = protocols.NmeaParser()
 
-sbus = SbusParser()
-imu = ImuPacket()
-calcHeading = CalcHeading()
 
 from misc_math_utils import get_new_gps_coords
 from misc_utils import get_last_packet
 from MavlinkHandler import MavlinkHandler
+from CalcHeading import CalcHeading
+
+calcHeading = CalcHeading()
+
 
 try:
     import ROBOT_CONFIG as config
@@ -47,40 +49,33 @@ if hasattr(config, 'ADC0_SCALE'):
 
 mavlink = MavlinkHandler(config.MAVLINK_IP_ADDRESS)
 
-#ublox = UbloxParser(mavlink)
-nmea = NmeaParser()
 
 
 ## We need to listen for certain UDP packets coming from the Moab:
-#UBLOX_RX_PORT = 27110
 #gps_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 #gps_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-#gps_sock.bind(("0.0.0.0", UBLOX_RX_PORT))
+#gps_sock.bind(("0.0.0.0", protocols.UBLOX_RX_PORT))
 
-IMU_RX_PORT = 27114
 imu_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 imu_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-imu_sock.bind(("0.0.0.0", IMU_RX_PORT))
+imu_sock.bind(("0.0.0.0", protocols.IMU_RX_PORT))
 
-NMEA_RX_PORT = 27113
 gps_sock_nmea = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 gps_sock_nmea.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-gps_sock_nmea.bind(("0.0.0.0", NMEA_RX_PORT))
+gps_sock_nmea.bind(("0.0.0.0", protocols.NMEA_RX_PORT))
 
-LIDAR_NAV_RX_PORT = 11546
-lidar_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-lidar_sock.bind(("0.0.0.0", LIDAR_NAV_RX_PORT))
+#lidar_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+#lidar_sock.bind(("0.0.0.0", protocols.LIDAR_NAV_RX_PORT))
+lidar_sock = None
 
-SBUS_PORT = 31338
-sbus_sock = None
 #sbus_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 #sbus_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-#sbus_sock.bind(("0.0.0.0", SBUS_PORT))
+#sbus_sock.bind(("0.0.0.0", protocols.SBUS_PORT))
+sbus_sock = None
 
-GCS_MESSAGES_PORT = 31339
 gcs_msgs_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 gcs_msgs_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-gcs_msgs_sock.bind(("127.0.0.1", GCS_MESSAGES_PORT))
+gcs_msgs_sock.bind(("127.0.0.1", protocols.GCS_MESSAGES_PORT))
 
 ## We will send lat, lon, heading, and speed to the Autopilot program
 nav_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -129,7 +124,7 @@ def parse_lidar_nav_packet(udpPacket):
 
 
 #allSockets = [gps_sock_nmea, imu_sock, lidar_sock, mavlink._sock, sbus_sock]
-allSockets = [gps_sock_nmea, imu_sock, lidar_sock, mavlink._sock, gcs_msgs_sock]
+allSockets = [gps_sock_nmea, imu_sock, mavlink._sock, gcs_msgs_sock]
 while True:
     inputs, outputs, errors = select.select(allSockets, [], [], 0.2)
     for oneInput in inputs:
