@@ -40,4 +40,4 @@ from .NmeaParser import NmeaParser
 from .Radio169 import Radio169
 from .SbusParser import SbusParser
 
-
+from .PidParser import PidParser
