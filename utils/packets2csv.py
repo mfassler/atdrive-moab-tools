@@ -71,15 +71,18 @@ IMU_XFRM = np.array([
     [ 0, 0, 1]
 ])
 
+SHAFT_ENCODER_DISTANCE = 0.155 # 15.5 cm per tick
+
 
 class MyCsvWriter:
     def __init__(self, filename):
         self._f = open(filename, 'w')
 
     def write_header(self):
-        txt = '%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s\n' % (
+        txt = '%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s\n' % (
             'ts',
             'pitch', 'roll', 'yaw',
+            'shaft_a_est_speed', 'shaft_b_est_speed',
             'latitude', 'longitude',
             'pid.sbus_steering', 'pid.sbus_throttle', 'pid.output', 'pid.K_p',
             'pid.e', 'pid.K_i', 'pid.I', 'pid.target_speed', 'pid.actual_speed'
@@ -93,9 +96,10 @@ class MyCsvWriter:
         pitch, roll, _yaw = transforms3d.euler.mat2euler(rot)
         yaw = -_yaw
 
-        txt = '%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s\n' % (
+        txt = '%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s\n' % (
             ts,
             np.degrees(pitch), np.degrees(roll), np.degrees(yaw),
+            imu.shaft_a_pps * SHAFT_ENCODER_DISTANCE, imu.shaft_b_pps * SHAFT_ENCODER_DISTANCE,
             nmea.lat, nmea.lon,
             pid.sbus_steering, pid.sbus_throttle, pid.output, pid.K_p,
             pid.e, pid.K_i, pid.I, pid.target_speed, pid.actual_speed
