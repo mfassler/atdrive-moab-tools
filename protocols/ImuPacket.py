@@ -51,6 +51,7 @@ class Moab_mode(Enum):
     AUTO = 3
     STOP_NO_BRAKES = 4  # not used anymore, I don't think
     AUTO_NO_AUTOPILOT = 5
+    EXTERNAL_SAFETY = 6
 
 
 
