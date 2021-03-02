@@ -8,6 +8,8 @@ import os
 import argparse
 import pickle
 import pprint
+import numpy as np
+import transforms3d
 
 import protocols
 from protocols.SbusParser import Flight_Mode
@@ -61,23 +63,42 @@ def load_packets_file(filename):
 
 
 
+# Moab is mounted with "forward" pointing "left"
+#   (ie:  ethernet cable is pointing "right")
+IMU_XFRM = np.array([
+    [ 0, 1, 0],
+    [-1, 0, 0],
+    [ 0, 0, 1]
+])
+
+
 class MyCsvWriter:
     def __init__(self, filename):
         self._f = open(filename, 'w')
 
     def write_header(self):
-        txt = '%s, %s, %s, %s, %s\n' % (
+        txt = '%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s\n' % (
             'ts',
+            'pitch', 'roll', 'yaw',
             'latitude', 'longitude',
-            'pid.target_speed', 'pid.actual_speed'
+            'pid.sbus_steering', 'pid.sbus_throttle', 'pid.output', 'pid.K_p',
+            'pid.e', 'pid.K_i', 'pid.I', 'pid.target_speed', 'pid.actual_speed'
         )
         self._f.write(txt)
 
     def write_line(self, ts, imu, nmea, pid, folAvoid, r169):
-        txt = '%s, %s, %s, %s, %s\n' % (
+        rot = transforms3d.quaternions.quat2mat([imu.qw, imu.qx, imu.qy, imu.qz])
+
+        rot = np.dot(rot, IMU_XFRM)
+        pitch, roll, _yaw = transforms3d.euler.mat2euler(rot)
+        yaw = -_yaw
+
+        txt = '%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s\n' % (
             ts,
+            np.degrees(pitch), np.degrees(roll), np.degrees(yaw),
             nmea.lat, nmea.lon,
-            pid.target_speed, pid.actual_speed
+            pid.sbus_steering, pid.sbus_throttle, pid.output, pid.K_p,
+            pid.e, pid.K_i, pid.I, pid.target_speed, pid.actual_speed
         )
         self._f.write(txt)
 
@@ -151,7 +172,7 @@ if __name__ == "__main__":
 
     packets = load_packets_file(args.infile)
 
-    write_csv(packets, args.outfile, 0.0001)
+    write_csv(packets, args.outfile, 0.1)
 
 
 
