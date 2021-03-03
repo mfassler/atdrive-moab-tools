@@ -64,14 +64,33 @@ class Rc_Controller_Source(Enum):
 
 class ImuPacket:
     def __init__(self):
-        self.shaft_pps = 0
-        self.shaft_a_pps = 0
-        self.shaft_b_pps = 0
+        self.magX = 0
+        self.magY = 0
+        self.magZ = 0
+        self.qw = 0
+        self.qx = 0
+        self.qy = 0
+        self.qz = 0
+        self.lax = 0
+        self.lay = 0
+        self.laz = 0
+        self.gx = 0
+        self.gy = 0
+        self.gz = 0
+        self.imu_temp = 0
+        self.calib_stat = 0
+        self.temperature = 0
+        self.pressure = 0
         self.sbus_a = 1024
         self.sbus_b = 1024
         self.moab_mode = -1
         self.rc_radio_source = -1
         self.adc0 = 0
+
+        self.shaft_pps = 0
+        self.shaft_a_pps = 0
+        self.shaft_b_pps = 0
+
 
     def parse(self, pkt):
         version, = struct.unpack('<h', pkt[:2])

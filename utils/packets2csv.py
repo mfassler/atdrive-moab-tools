@@ -78,16 +78,25 @@ class MyCsvWriter:
     def __init__(self, filename):
         self._f = open(filename, 'w')
 
-    def write_header(self):
-        txt = '%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s\n' % (
+        self._field_names = (
             'ts',
+            'imu.lax', 'imu.lay', 'imu.laz', 'imu.gx', 'imu.gy', 'imu.gz',
+            'imu.temperature', 'imu.pressure', 'imu.sbus_a', 'imu.sbus_b', 'imu.moab_mode',
+            'imu.adc0',
             'pitch', 'roll', 'yaw',
             'shaft_a_est_speed', 'shaft_b_est_speed',
-            'latitude', 'longitude',
+            'latitude', 'longitude', 'gps.speed', 'gps.true_course', 'gps.GGA_fix',
             'pid.sbus_steering', 'pid.sbus_throttle', 'pid.output', 'pid.K_p',
             'pid.e', 'pid.K_i', 'pid.I', 'pid.target_speed', 'pid.actual_speed'
         )
+
+        numFields = len(self._field_names)
+        self._PRINTF_STRING = '%s, ' * (numFields - 1) + '%s\n'
+
+    def write_header(self):
+        txt = self._PRINTF_STRING % self._field_names
         self._f.write(txt)
+
 
     def write_line(self, ts, imu, nmea, pid, folAvoid, r169):
         rot = transforms3d.quaternions.quat2mat([imu.qw, imu.qx, imu.qy, imu.qz])
@@ -96,11 +105,14 @@ class MyCsvWriter:
         pitch, roll, _yaw = transforms3d.euler.mat2euler(rot)
         yaw = -_yaw
 
-        txt = '%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s\n' % (
+        txt = self._PRINTF_STRING % (
             ts,
+            imu.lax, imu.lay, imu.laz, imu.gx, imu.gy, imu.gz,
+            imu.temperature, imu.pressure, imu.sbus_a, imu.sbus_b, imu.moab_mode,
+            imu.adc0,
             np.degrees(pitch), np.degrees(roll), np.degrees(yaw),
             imu.shaft_a_pps * SHAFT_ENCODER_DISTANCE, imu.shaft_b_pps * SHAFT_ENCODER_DISTANCE,
-            nmea.lat, nmea.lon,
+            nmea.lat, nmea.lon, nmea.speed, nmea.true_course, nmea.GGA_fix,
             pid.sbus_steering, pid.sbus_throttle, pid.output, pid.K_p,
             pid.e, pid.K_i, pid.I, pid.target_speed, pid.actual_speed
         )
