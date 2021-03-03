@@ -85,9 +85,20 @@ class MyCsvWriter:
             'imu.adc0',
             'pitch', 'roll', 'yaw',
             'shaft_a_est_speed', 'shaft_b_est_speed',
+
             'latitude', 'longitude', 'gps.speed', 'gps.true_course', 'gps.GGA_fix',
+
             'pid.sbus_steering', 'pid.sbus_throttle', 'pid.output', 'pid.K_p',
-            'pid.e', 'pid.K_i', 'pid.I', 'pid.target_speed', 'pid.actual_speed'
+            'pid.e', 'pid.K_i', 'pid.I', 'pid.target_speed', 'pid.actual_speed',
+
+            'folAvoid.follow_r', 'folAvoid.follow_angle', 'folAvoid.avoid_color', 'folAvoid.avoid_x', 'folAvoid.avoid_y',
+
+            'r169.btn_start', 'r169.btn_back', 'r169.btn_logi', 'r169.btn_wtf',
+            'r169.btn_LB', 'r169.btn_LT', 'r169.btn_RB', 'r169.btn_RT',
+            'r169.btn_Y', 'r169.btn_A', 'r169.btn_B', 'r169.btn_X',
+            'r169.btn_up', 'r169.btn_down', 'r169.btn_right', 'r169.btn_left',
+            'r169.leftjoy_lr', 'r169.leftjoy_ud', 'r169.rightjoy_lr', 'r169.rightjoy_ud'
+
         )
 
         numFields = len(self._field_names)
@@ -112,9 +123,19 @@ class MyCsvWriter:
             imu.adc0,
             np.degrees(pitch), np.degrees(roll), np.degrees(yaw),
             imu.shaft_a_pps * SHAFT_ENCODER_DISTANCE, imu.shaft_b_pps * SHAFT_ENCODER_DISTANCE,
+
             nmea.lat, nmea.lon, nmea.speed, nmea.true_course, nmea.GGA_fix,
+
             pid.sbus_steering, pid.sbus_throttle, pid.output, pid.K_p,
-            pid.e, pid.K_i, pid.I, pid.target_speed, pid.actual_speed
+            pid.e, pid.K_i, pid.I, pid.target_speed, pid.actual_speed,
+
+            folAvoid.follow_r, folAvoid.follow_angle, folAvoid.avoid_color, folAvoid.avoid_x, folAvoid.avoid_y,
+
+            r169.btn_start, r169.btn_back, r169.btn_logi, r169.btn_wtf,
+            r169.btn_LB, r169.btn_LT, r169.btn_RB, r169.btn_RT,
+            r169.btn_Y, r169.btn_A, r169.btn_B, r169.btn_X,
+            r169.btn_up, r169.btn_down, r169.btn_right, r169.btn_left,
+            r169.leftjoy_lr, r169.leftjoy_ud, r169.rightjoy_lr, r169.rightjoy_ud
         )
         self._f.write(txt)
 
