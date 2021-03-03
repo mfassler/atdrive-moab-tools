@@ -10,9 +10,8 @@ import socket
 import struct
 import numpy as np
 
-from NmeaParser import NmeaParser
-
-nmea = NmeaParser()
+import protocols
+nmea = protocols.NmeaParser()
 
 
 NMEA_RX_PORT = 27113

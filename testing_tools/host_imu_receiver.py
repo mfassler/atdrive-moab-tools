@@ -11,8 +11,8 @@ import time
 import numpy as np
 import transforms3d
 
-from ImuPacket import ImuPacket
-imu = ImuPacket()
+import protocols
+imu = protocols.ImuPacket()
 
 
 BNO055_RX_PORT = 27114
