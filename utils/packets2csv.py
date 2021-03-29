@@ -166,7 +166,10 @@ def write_csv(packets, outfile, interval):
 
         elif protocol == 'nmea':
             print('    nmea')
-            nmea.parse_packet(raw_packet)
+            try:
+                nmea.parse_packet(raw_packet)
+            except Exception as e:
+                print('BAD NMEA packet:', e, raw_packet)
 
         elif protocol == 'pid':
             print('         pid')
